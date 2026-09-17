@@ -1,12 +1,17 @@
-import { Component, signal } from '@angular/core';
+import {Component} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.scss',
-  templateUrl: './app.html',
+  imports: [RouterOutlet],
+  template: `<router-outlet />`,
+  styles: `
+    :host {
+      color: #a144eb;
+    }
+  `,
 })
+
 export class App {
-  protected readonly title = signal('transcendence');
+  city = 'San Fransico';
 }
