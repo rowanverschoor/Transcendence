@@ -1,0 +1,6 @@
+# Local override for codam clusters.
+# Copy this to the project root, next to mise.toml, to stop mise from using space on you home drive.
+# Only works if you run `source <(mise activate bash|zsh|fish)` first.
+# Add it to your .rc for convenience.
+[env]
+MISE_DATA_DIR="$HOME/goinfre/mise"
