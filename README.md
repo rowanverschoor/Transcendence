@@ -1,18 +1,24 @@
 # Transcendance
 
-## Description
+## Tech Spike - moving square
+In order to familiarize the team with typescript and WebSockets we're starting simple.
+Input from one client should show up on another client in real time.
+We will make page with a square that a user can move. This movement should show up for all connected clients.
+We can benchmark latency by adding a timestamp to all communications later.
 
-## Instructions
+## Progress so far
+### Backend
+A node backend that can accept websocket connections.
+Each client gets it own connection.
+When the backend receives a `MOUSEPOS` message the message is broadcasted.
 
-### Installation & Dependencies
+### Frontend
+Frontend requests a websocket connection and registers callbacks to socket events.
+Frontend registers a callback on the mousemove event.
+Callback sends the coordinates over the websocket.
+When websocket receives a message, message is displayed through a callback.
 
-### Execution
-
-## Features
-
-
-## Resources
-
-### References
-
-### AI Usage
+## How to run
+Easiest way to run is to install [mise](https://mise.jdx.dev/).  
+From project repo root run `mise run start` to start the server.  
+Open the page in 2 windows to see the effects.
