@@ -1,0 +1,22 @@
+[tools]
+node = "26"
+
+[tasks.dev]
+description = "Run the server with watch mode"
+run = "npm run dev"
+
+[tasks.start]
+description = "Run the server"
+run = "npm start"
+
+[tasks.check]
+description = "Type-check without emitting"
+run = "npm run check"
+
+[tasks.fmt]
+description = "Format source files"
+run = "npx prettier --write main.ts frontend.ts index.html"
+
+[tasks.lint]
+description = "Lint source files"
+run = "npx eslint ."
