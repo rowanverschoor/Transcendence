@@ -20,3 +20,9 @@ run = "npx prettier --write main.ts frontend.ts index.html"
 [tasks.lint]
 description = "Lint source files"
 run = "npx eslint ."
+
+[settings]
+experimental = true
+
+[deps.npm]
+auto = true

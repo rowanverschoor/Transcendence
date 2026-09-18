@@ -1,5 +1,8 @@
 /// <reference lib="dom" />
 
+import type { MouseMove } from "./types.ts"
+import { defaultMouseMove, WsEvent } from "./types.ts";
+
 let websocket: WebSocket | undefined;
 let mouseX = 0;
 let mouseY = 0;
@@ -29,7 +32,7 @@ const sendMessage = (message: string): void => {
     return;
   }
 
-//   writeToScreen(`SENT: ${message}`);
+  //   writeToScreen(`SENT: ${message}`);
   websocket.send(message);
 };
 
@@ -38,7 +41,6 @@ document.addEventListener("DOMContentLoaded", (): void => {
 
   websocket.onopen = (): void => {
     writeToScreen("CONNECTED");
-    sendMessage("ping");
   };
 
   websocket.onclose = (): void => {
@@ -46,7 +48,11 @@ document.addEventListener("DOMContentLoaded", (): void => {
   };
 
   websocket.onmessage = (event: MessageEvent): void => {
-    output().innerHTML = `RECEIVED: ${event.data}`;
+    const data = JSON.parse(event.data.toString())
+    if (data.type === WsEvent.MouseMove) {
+      const mousemove: MouseMove = data;
+      output().innerHTML = `Other pos: X: ${mousemove.mouseX} Y: ${mousemove.mouseY}`;
+    }
   };
 
   websocket.onerror = (event: Event): void => {
@@ -55,8 +61,9 @@ document.addEventListener("DOMContentLoaded", (): void => {
 });
 
 document.addEventListener("mousemove", (event: MouseEvent): void => {
-  mouseX = event.clientX;
-  mouseY = event.clientY;
-  mousePosition().innerHTML = `X: ${mouseX} Y: ${mouseY}`;
-  sendMessage(`MOUSEPOS: X: ${mouseX} Y: ${mouseY}`);
+  mousePosition().innerHTML = `Own pos: X: ${event.clientX} Y: ${event.clientY}`;
+  let mousemove: MouseMove = defaultMouseMove;
+  mousemove.mouseX = event.clientX;
+  mousemove.mouseY = event.clientY;
+  sendMessage(JSON.stringify(mousemove));
 });

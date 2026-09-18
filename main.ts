@@ -3,12 +3,17 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 
+import { WsEvent, type MouseMove } from "./types.ts";
+
 // ============================ BORING BOILERPLATE =============================
 
 const files: Record<string, { path: string; contentType: string }> = {
   "/": { path: "./index.html", contentType: "text/html" },
   "/index.html": { path: "./index.html", contentType: "text/html" },
-  "/frontend.js": { path: "./dist/frontend.js", contentType: "text/javascript" },
+  "/frontend.js": {
+    path: "./dist/frontend.js",
+    contentType: "text/javascript",
+  },
 };
 
 const server = http.createServer(async (request, response) => {
@@ -16,7 +21,8 @@ const server = http.createServer(async (request, response) => {
     return; // handled by the WebSocketServer below
   }
 
-  const fileToServe = files[new URL(request.url ?? "/", "http://localhost").pathname];
+  const fileToServe =
+    files[new URL(request.url ?? "/", "http://localhost").pathname];
   if (!fileToServe) {
     response.writeHead(404);
     response.end("Not found");
@@ -51,12 +57,23 @@ wss.on("connection", (socket: WebSocket) => {
     if (isBinary) {
       return;
     }
-    const message = data.toString();
-    // Broadcast message to all clients
-    if (message.startsWith("MOUSEPOS:")) {
-      for (const s of sockets) {
-        if (s !== socket) s.send(message);
-      }
+    let eventJson: MouseMove;
+    try {
+      eventJson = JSON.parse(data.toString());
+    } catch (error) {
+      console.error(error);
+      return;
+    }
+    switch (eventJson.type) {
+      case WsEvent.MouseMove:
+        for (const s of sockets) {
+          if (s !== socket) s.send(data.toString());
+        }
+        break;
+
+      default:
+        console.error("Unknown event type")
+        break;
     }
   });
 
