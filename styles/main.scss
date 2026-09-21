@@ -1,0 +1,53 @@
+$color-bg: #111827;
+$color-surface: #1f2937;
+$color-text: #e5e7eb;
+// $color-accent: #38bdf8;
+$color-play-area: #9ea9c0;
+$color-circle: #38bdf8;
+$circle-size: 80px;
+$spacing: 1rem;
+
+@mixin panel {
+  background: $color-surface;
+  border-radius: 6px;
+  padding: $spacing;
+  margin-bottom: $spacing;
+}
+
+body#demo {
+  margin: 0;
+  padding: $spacing * 2;
+  background: $color-bg;
+  color: $color-text;
+  font-family: system-ui, sans-serif;
+}
+
+#mousepos,
+#output {
+  @include panel;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+#mousepos p,
+#output p {
+  margin: 0;
+}
+
+#play-area {
+  position: relative;
+  width: 1200px;
+  height: 800px;
+  background: $color-play-area;
+  border-radius: 6px;
+}
+
+#circle {
+  position: absolute;
+  width: $circle-size;
+  height: $circle-size;
+  border-radius: 50%;
+  background: $color-circle;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

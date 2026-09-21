@@ -9,6 +9,7 @@ const files: Record<string, { path: string; contentType: string }> = {
   "/": { path: "./index.html", contentType: "text/html" },
   "/index.html": { path: "./index.html", contentType: "text/html" },
   "/frontend.js": { path: "./dist/frontend.js", contentType: "text/javascript" },
+  "/styles.css": { path: "./dist/styles.css", contentType: "text/css" },
 };
 
 const server = http.createServer(async (request, response) => {

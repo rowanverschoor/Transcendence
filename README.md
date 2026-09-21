@@ -22,3 +22,5 @@ When websocket receives a message, message is displayed through a callback.
 Easiest way to run is to install [mise](https://mise.jdx.dev/).  
 From project repo root run `mise run start` to start the server.  
 Open the page in 2 windows to see the effects.
+
+install Sass: npm install --save-dev sass

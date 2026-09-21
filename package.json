@@ -4,9 +4,10 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "dev": "tsc && node dist/main.js",
-    "start": "tsc && node dist/main.js",
-    "build": "tsc",
+    "dev": "npm run build && node dist/main.js",
+    "start": "npm run build && node dist/main.js",
+    "build": "tsc && sass --no-source-map --style=compressed styles/main.scss dist/styles.css",
+    "watch:css": "sass --no-source-map --watch styles/main.scss dist/styles.css",
     "check": "tsc --noEmit",
     "serve": "node --experimental-strip-types --watch main.ts"
   },
@@ -26,6 +27,7 @@
     "@types/ws": "^8.18.1",
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
+    "sass": "^1.104.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0"
   }
