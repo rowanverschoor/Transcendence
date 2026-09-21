@@ -14,5 +14,3 @@ class Square {
 		this.y += y;
 	}
 }
-
-window.
