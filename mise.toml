@@ -28,5 +28,5 @@ experimental = true
 auto = true
 
 [tasks.setup]
-description = "Pick mise data dir (Codam goinfre vs home)"
+description = "Automatically pick mise data dir (Codam goinfre vs home)"
 run = "bash setup-mise.sh"
