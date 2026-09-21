@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Picks the mise data directory based on location (school vs home).
-# Run automatically by `mise run start`.
+# Run automatically by `mise run frontend` (via the `setup` task).
 
 if [ -d "$HOME/goinfre" ]; then
   # At school: copy the template to root so mise uses the goinfre data dir
