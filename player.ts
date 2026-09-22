@@ -1,4 +1,4 @@
-class Square {
+class Player {
 	size: number;
 	x: number;
 	y: number;
