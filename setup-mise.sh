@@ -9,7 +9,7 @@ project_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 template="$project_dir/dev/mise.local.toml"
 override="$project_dir/mise.local.toml"
 
-# If goinfre exists, use it for mise data.
+# If goinfre exists, use it for mise data
 if [ -d "$HOME/goinfre" ]; then
   if [ ! -e "$override" ]; then
     cp "$template" "$override"
@@ -20,7 +20,7 @@ if [ -d "$HOME/goinfre" ]; then
     echo "error: $override already exists and is not the project template; leaving it untouched" >&2
     exit 1
   fi
-# Without goinfre, remove only the generated override and keep custom overrides.
+# Without goinfre, remove only the generated override and keep custom overrides
 else
   if [ ! -e "$override" ]; then
     echo "mise data dir: default"
