@@ -1,8 +1,21 @@
 /// <reference lib="dom" />
 
+import type { MouseMove } from "./types.ts"
+import { defaultMouseMove, WsEvent } from "./types.ts";
+import { gameObject } from "./gameObject.ts"
+import { Player } from "./player.ts"
+
 let websocket: WebSocket | undefined;
 let mouseX = 0;
 let mouseY = 0;
+let player: Player | undefined;
+// let object: gameObject | undefined;
+
+// to have the player object follow mouse directly (its always accurate on both sides)
+// uncomment everything related to "object" and comment everything related to the "player"
+// variable. to fix desync between slowly following we need to initialize the "player"
+// on the current position, dunno how to do that as of now.
+
 
 const output = (): HTMLElement => {
   const element = document.querySelector<HTMLElement>("#output");
@@ -29,7 +42,6 @@ const sendMessage = (message: string): void => {
     return;
   }
 
-//   writeToScreen(`SENT: ${message}`);
   websocket.send(message);
 };
 
@@ -38,7 +50,8 @@ document.addEventListener("DOMContentLoaded", (): void => {
 
   websocket.onopen = (): void => {
     writeToScreen("CONNECTED");
-    sendMessage("ping");
+	player = new Player(100, 0, 0, new gameObject("player", 100, 100));
+	// object = new gameObject("object", 100, 100)
   };
 
   websocket.onclose = (): void => {
@@ -46,7 +59,13 @@ document.addEventListener("DOMContentLoaded", (): void => {
   };
 
   websocket.onmessage = (event: MessageEvent): void => {
-    output().innerHTML = `RECEIVED: ${event.data}`;
+    const data = JSON.parse(event.data.toString())
+    if (data.type === WsEvent.MouseMove) {
+      const mousemove: MouseMove = data;
+      output().innerHTML = `Other pos: X: ${mousemove.mouseX} Y: ${mousemove.mouseY}`;
+ 	  player?.transform2D(mousemove.mouseX, mousemove.mouseY);
+	  //object?.moveObject(mousemove.mouseX, mousemove.mouseY);
+    }
   };
 
   websocket.onerror = (event: Event): void => {
@@ -55,8 +74,11 @@ document.addEventListener("DOMContentLoaded", (): void => {
 });
 
 document.addEventListener("mousemove", (event: MouseEvent): void => {
-  mouseX = event.clientX;
-  mouseY = event.clientY;
-  mousePosition().innerHTML = `X: ${mouseX} Y: ${mouseY}`;
-  sendMessage(`MOUSEPOS: X: ${mouseX} Y: ${mouseY}`);
+  mousePosition().innerHTML = `Own pos: X: ${event.clientX} Y: ${event.clientY}`;
+  let mousemove: MouseMove = defaultMouseMove;
+  mousemove.mouseX = event.clientX;
+  mousemove.mouseY = event.clientY;
+  player?.transform2D(mousemove.mouseX, mousemove.mouseY);
+  //object?.moveObject(mousemove.mouseX, mousemove.mouseY);
+  sendMessage(JSON.stringify(mousemove));
 });

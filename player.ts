@@ -1,6 +1,6 @@
 import { gameObject } from "./gameObject";
 
-class Player {
+export class Player {
 	size: number;
 	x: number;
 	y: number;
@@ -13,8 +13,15 @@ class Player {
 		this.sprite = sprite;
 	}
 
-	translate2D(x: number, y: number) {
-		this.x += x;
-		this.y += y;
+	transform2D(x: number, y: number) {
+		if (x < this.x)
+			this.x -= 5;
+		else if (x > this.x)
+			this.x += 5;
+		if (y < this.y)
+			this.y -= 5;
+		else if (y > this.y)
+			this.y += 5;
+		this.sprite.moveObject(this.x, this.y);
 	}
 }

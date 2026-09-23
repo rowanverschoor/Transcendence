@@ -4,9 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "dev": "tsc && node dist/main.js",
-    "start": "tsc && node dist/main.js",
-    "build": "tsc",
+    "dev": "node --experimental-strip-types --watch main.ts & esbuild frontend.ts --bundle --outfile=dist/frontend.js --watch",
+    "build": "esbuild frontend.ts --bundle --outfile=dist/frontend.js",
     "check": "tsc --noEmit",
     "serve": "node --experimental-strip-types --watch main.ts"
   },
@@ -24,6 +23,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.0",
     "@types/ws": "^8.18.1",
+    "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
     "typescript": "^5.9.3",
