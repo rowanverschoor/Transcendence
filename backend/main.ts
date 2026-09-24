@@ -2,6 +2,7 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
+import { ClientMessage, ServerAnnouncement, ServerMessage } from "@transcendence/shared";
 
 // ============================ BORING BOILERPLATE =============================
 
@@ -37,6 +38,14 @@ const server = http.createServer(async (request, response) => {
 
 const sockets = new Set<WebSocket>();
 
+const broadcast = (msg: any, exclude?: WebSocket): void => {
+  for (const s of sockets) {
+    if (exclude && s === exclude) {
+      s.send(JSON.stringify(msg));
+    }
+  }
+}
+
 const wss = new WebSocketServer({ server });
 
 // Register a callback for the WebSocket Server
@@ -51,13 +60,24 @@ wss.on("connection", (socket: WebSocket) => {
     if (isBinary) {
       return;
     }
-    const message = data.toString();
-    // Broadcast message to all clients
-    if (message.startsWith("MOUSEPOS:")) {
-      for (const s of sockets) {
-        if (s !== socket) s.send(message);
-      }
+    let msg: ClientMessage;
+    try {
+      msg = ClientMessage.parse(JSON.parse(data.toString()));
+    } catch (error) {
+      console.error(error);
+      return;
     }
+    let reply: ServerMessage;
+    switch (msg.type) {
+      case "mousemove":
+        broadcast(
+          ServerAnnouncement("Valid 'mousemove' message received"));
+        break;
+
+      default:
+        break;
+    }
+    // Broadcast message to all clients
   });
 
   // Callback for close events.
