@@ -16,6 +16,9 @@
   <p role="alert">Server error message goes here.</p>
 
   <button type="submit">Log in</button>
+
+  <button type="button" (click)="auth.login('showard', 'password')">LOGIN TEST</button>
+  <button type="button" (click)="auth.logout()">LOGOUT TEST</button>
 </form>
 
 <p>No account? <a href="/register">Register</a></p>
