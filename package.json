@@ -3,10 +3,16 @@
   "version": "0.0.0",
   "description": "",
   "type": "module",
+  "workspaces": ["backend", "frontend", "shared"],
   "scripts": {
-    "dev": "tsc && node dist/main.js",
+    // Frontend scripts
+    "ng": "npm run ng -w frontend",
+    "start:frontend": "npm run start -w frontend",
+    "build:frontend": "npm run build -w frontend",
+    "watch:frontend": "npm run watch -w frontend",
+    "test:frontend": "npm run test -w frontend",
+    // Other scripts
     "start": "tsc && node dist/main.js",
-    "build": "tsc",
     "check": "tsc --noEmit",
     "serve": "node --experimental-strip-types --watch main.ts"
   },
@@ -14,12 +20,9 @@
     "type": "git",
     "url": "git+https://github.com/rowanverschoor/Transcendence.git"
   },
-  "keywords": [],
+  "keywords": ["codam", "transcendence", "42"],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "ws": "^8.19.0"
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.0",

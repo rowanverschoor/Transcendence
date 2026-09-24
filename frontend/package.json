@@ -1,5 +1,5 @@
 {
-  "name": "transcendence",
+  "name": "@transcendence/frontend",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -18,7 +18,8 @@
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@transcendence/shared": "*"
   },
   "devDependencies": {
     "@angular/build": "^22.1.8",
