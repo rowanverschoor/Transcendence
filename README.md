@@ -22,3 +22,10 @@ When websocket receives a message, message is displayed through a callback.
 Easiest way to run is to install [mise](https://mise.jdx.dev/).  
 From project repo root run `mise run start` to start the server.  
 Open the page in 2 windows to see the effects.
+
+### mise data directory
+Run `mise run setup` after cloning or when changing locations. When `~/goinfre`
+exists, the project uses `~/goinfre/mise` for mise data. Elsewhere, mise uses its
+normal default location. The setup script only creates or removes the exact
+project-generated override; it preserves custom `mise.local.toml` files and
+stops if an existing file differs from the project template.
