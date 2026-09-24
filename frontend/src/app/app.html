@@ -8,5 +8,6 @@
   <a routerLink="/terms">Terms</a>
 </nav>
 <main>
+  <p> Current User: {{ auth.currentUser()?.username }}</p>
   <router-outlet />
 </main>
