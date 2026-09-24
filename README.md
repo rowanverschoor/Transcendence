@@ -21,6 +21,7 @@ When websocket receives a message, message is displayed through a callback.
 ## How to run
 Easiest way to run is to install [mise](https://mise.jdx.dev/).  
 From project repo root run `mise run start` to start the server.  
+Run `mise run frontend` to start the Angular frontend.  
 Open the page in 2 windows to see the effects.
 
 ### mise data directory
