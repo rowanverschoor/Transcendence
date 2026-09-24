@@ -2,3 +2,4 @@ node_modules/
 dist/
 mise.local.toml
 .angular/
+.env
