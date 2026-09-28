@@ -1,4 +1,7 @@
 /// <reference lib="dom" />
+import { ServerMessage, MouseMove, SequencedFactoryFactory } from "@transcendence/shared";
+
+const createMouseMove = SequencedFactoryFactory(0, MouseMove);
 
 let websocket: WebSocket | undefined;
 let mouseX = 0;
@@ -28,8 +31,6 @@ const sendMessage = (message: string): void => {
   if (!websocket || websocket.readyState !== WebSocket.OPEN) {
     return;
   }
-
-//   writeToScreen(`SENT: ${message}`);
   websocket.send(message);
 };
 
@@ -38,7 +39,6 @@ document.addEventListener("DOMContentLoaded", (): void => {
 
   websocket.onopen = (): void => {
     writeToScreen("CONNECTED");
-    sendMessage("ping");
   };
 
   websocket.onclose = (): void => {
@@ -46,7 +46,26 @@ document.addEventListener("DOMContentLoaded", (): void => {
   };
 
   websocket.onmessage = (event: MessageEvent): void => {
-    output().innerHTML = `RECEIVED: ${event.data}`;
+    try {
+      output().innerHTML = `RECEIVED: ${event.data}`;
+      const msg = JSON.parse(event.data);
+      console.log(msg);
+
+      const sm: ServerMessage = ServerMessage.parse(msg);
+      switch (sm.type) {
+        case "forward":
+          output().innerHTML = `Server forwarded client message: ${JSON.stringify(sm.msg)}`;
+          break;
+        case "announcement":
+          output().innerHTML = `Server announcement: ${sm.text}`
+
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error(error);
+      return;
+    }
   };
 
   websocket.onerror = (event: Event): void => {
@@ -58,5 +77,5 @@ document.addEventListener("mousemove", (event: MouseEvent): void => {
   mouseX = event.clientX;
   mouseY = event.clientY;
   mousePosition().innerHTML = `X: ${mouseX} Y: ${mouseY}`;
-  sendMessage(`MOUSEPOS: X: ${mouseX} Y: ${mouseY}`);
+  sendMessage(JSON.stringify(createMouseMove({ x: mouseX, y: mouseY })))
 });

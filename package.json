@@ -11,10 +11,8 @@
     "build:frontend": "npm run build -w frontend",
     "watch:frontend": "npm run watch -w frontend",
     "test:frontend": "npm run test -w frontend",
-    // Other scripts
-    "start": "tsc && node dist/main.js",
-    "check": "tsc --noEmit",
-    "serve": "node --experimental-strip-types --watch main.ts"
+    // Backend scripts
+    "watch:backend": "npm run watch -w backend"
   },
   "repository": {
     "type": "git",

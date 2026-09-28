@@ -1,0 +1,5 @@
+
+[tasks.frontend]
+description = "Run the Angular dev server"
+depends = ["^setup"]
+run = "npm start"

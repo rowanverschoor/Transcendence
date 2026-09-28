@@ -2,7 +2,7 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
-import { ClientMessage, ServerAnnouncement, ServerMessage } from "@transcendence/shared";
+import { ClientMessage, ServerMessage, MouseMove } from "@transcendence/shared";
 
 // ============================ BORING BOILERPLATE =============================
 
@@ -38,15 +38,14 @@ const server = http.createServer(async (request, response) => {
 
 const sockets = new Set<WebSocket>();
 
-const broadcast = (msg: any, exclude?: WebSocket): void => {
-  for (const s of sockets) {
-    if (exclude && s === exclude) {
-      s.send(JSON.stringify(msg));
-    }
-  }
-}
-
 const wss = new WebSocketServer({ server });
+
+const broadcast = (msg: ServerMessage, exclude?: WebSocket): void => {
+  wss.clients.forEach((client: WebSocket): void => {
+    if (client !== exclude)
+      client.send(JSON.stringify(msg))
+  })
+}
 
 // Register a callback for the WebSocket Server
 wss.on("connection", (socket: WebSocket) => {
@@ -61,23 +60,32 @@ wss.on("connection", (socket: WebSocket) => {
       return;
     }
     let msg: ClientMessage;
+    let reply: ServerMessage;
     try {
       msg = ClientMessage.parse(JSON.parse(data.toString()));
     } catch (error) {
       console.error(error);
       return;
     }
-    let reply: ServerMessage;
     switch (msg.type) {
       case "mousemove":
-        broadcast(
-          ServerAnnouncement("Valid 'mousemove' message received"));
+        MouseMove.parse(msg);
+        reply = {
+          type: "forward",
+          msg: JSON.parse(data.toString())
+        };
         break;
 
       default:
+        // Valid ClientMessage but of type not yet handled
+        reply = {
+          type: "announcement",
+          text: "Unexpected ClientMessage type received"
+        }
         break;
     }
     // Broadcast message to all clients
+    broadcast(reply, socket)
   });
 
   // Callback for close events.
