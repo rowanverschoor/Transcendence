@@ -1,4 +1,11 @@
-import { Application, Assets, Sprite } from "pixi.js";
+import { Application, Assets, Point, Sprite } from "pixi.js";
+import 'pixi.js/math-extras'
+
+function within(a: {x: number; y: number}, b: {x: number; y: number}, range: number) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy <= range * range;
+}
 
 (async () => {
   // Create a new application
@@ -28,29 +35,23 @@ import { Application, Assets, Sprite } from "pixi.js";
   app.stage.eventMode = 'static';
   app.stage.hitArea = app.screen;
 
-  app.stage.addEventListener('pointermove', (event) => {
-		const mousePos = event.global;
-		var x: number = bunny.x;
-		var y: number = bunny.y;
-		var delay = 100;
-		if (mousePos.x > x)
-			x = ((mousePos.x - x) / delay) + x;
-		else if (mousePos.x < x)
-			x = ((x - mousePos.x) / delay) + mousePos.x;
-		if (mousePos.y > y)
-			y = ((mousePos.y - y) / delay) + y;
-		else if (mousePos.y < y)
-			y = ((y - mousePos.y) / delay) + mousePos.y;
-		bunny.position.set(x, y);
-  });
-  
-  console.log("b");
+  //app.stage.addEventListener('pointermove', (event) => {
+	//	const mousePos = event.global;
+  //  const vec = mousePos.subtract(bunny.position).normalize().multiply(new Point(5, 5)).add(bunny.position);
+  //  bunny.position.set(vec.x, vec.y);
+  //});
 
   // Listen for animate update
-//   app.ticker.add((time) => {
-//     // Just for fun, let's rotate mr rabbit a little.
-//     // * Delta is 1 if running at 100% performance *
-//     // * Creates frame-independent transformation *
-//     bunny.rotation += 0.1 * time.deltaTime;
-//   });
+   app.ticker.add((time) => {
+     // Just for fun, let's rotate mr rabbit a little.
+     // * Delta is 1 if running at 100% performance *
+     // * Creates frame-independent transformation *
+     // bunny.rotation += 0.1 * time.deltaTime;
+    const mousePos = app.renderer.events.pointer.global;
+    const speed = 5;
+    const vec = mousePos.subtract(bunny.position).normalize().multiplyScalar(speed).add(bunny.position);
+    //const vec = mousePos.subtract(bunny.position).normalize().multiply(new Point(5, 5)).add(bunny.position);
+    if (!within(mousePos, bunny, 3))
+      bunny.position.set(vec.x, vec.y);
+   });
 })();
