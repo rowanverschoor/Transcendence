@@ -15,7 +15,7 @@ type SchemaOutput<S extends { shape: z.ZodRawShape }> = {
 // It's magic
 export const SequencedFactoryFactory = <S extends { shape: z.ZodRawShape }>(startSeq: number, schema: S) => {
 	let seq = startSeq;
-	const type = [...(schema.shape.type as z.ZodLiteral).values][0];
+	const type = [...(schema.shape["type"] as z.ZodLiteral).values][0];
 	return (fields: Omit<SchemaOutput<S>, "type" | "seq">): SchemaOutput<S> =>
 		({ ...fields, type, seq: seq++ }) as SchemaOutput<S>;
 };

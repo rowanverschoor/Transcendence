@@ -5,13 +5,12 @@
   "type": "module",
   "workspaces": ["backend", "frontend", "shared"],
   "scripts": {
-    // Frontend scripts
     "ng": "npm run ng -w frontend",
+    "dev": "npm run watch -w backend & npm run start -w frontend",
     "start:frontend": "npm run start -w frontend",
     "build:frontend": "npm run build -w frontend",
     "watch:frontend": "npm run watch -w frontend",
     "test:frontend": "npm run test -w frontend",
-    // Backend scripts
     "watch:backend": "npm run watch -w backend"
   },
   "repository": {

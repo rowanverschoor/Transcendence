@@ -14,7 +14,7 @@ run = "npm run check"
 
 [tasks.fmt]
 description = "Format source files"
-run = "npx prettier --write main.ts frontend.ts index.html"
+run = "npx prettier --write src/**/*.ts"
 
 [tasks.lint]
 description = "Lint source files"

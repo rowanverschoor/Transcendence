@@ -13,12 +13,12 @@ auto = true
 node = "26"
 
 [tasks.dev]
-description = "Run the server with watch mode"
+description = "Run backend (watch) and frontend dev server"
 run = "npm run dev"
 
 [tasks.start]
-description = "Run the server"
-run = "npm start"
+description = "Run the backend server"
+run = "npm run serve -w backend"
 
 [tasks.check]
 description = "Type-check without emitting"

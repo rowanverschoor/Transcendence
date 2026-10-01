@@ -20,6 +20,7 @@
     "pixi.js": "^8.21.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "socket.io-client": "^4.8.1",
     "@transcendence/shared": "*"
   },
   "devDependencies": {
