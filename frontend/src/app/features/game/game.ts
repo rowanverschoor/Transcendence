@@ -1,5 +1,5 @@
 import { Component, DestroyRef, ElementRef, afterNextRender, inject, viewChild } from '@angular/core';
-import { PixiEngine } from './pixi-engine';
+import { PixiApp } from './render/pixi-app';
 
 @Component({
 	imports: [],
@@ -9,16 +9,16 @@ import { PixiEngine } from './pixi-engine';
 })
 export class Game {
 	private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('gameHost');
-	private engine?: PixiEngine;
+	private app?: PixiApp;
 
 	constructor() {
 		const destroyRef = inject(DestroyRef);
 		// afterNextRender: DOM host exists and (if SSR ever lands) we're in the browser.
 		afterNextRender(async () => {
-			this.engine = await PixiEngine.create(this.host().nativeElement);
+			this.app = await PixiApp.create(this.host().nativeElement);
 			// destroyRef.onDestroy inside afterNextRender avoids tearing down an
-			// engine whose init() was still pending when the user navigated away.
-			destroyRef.onDestroy(() => this.engine?.destroy());
+			// app whose init() was still pending when the user navigated away.
+			destroyRef.onDestroy(() => this.app?.destroy());
 		});
 	}
 }
