@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/.angular
+.git
+**/.env
+**/*.md
+dev/
+docs/
+mise.toml
+mise.local.toml
+setup-mise.sh
+Dockerfile
+**/Dockerfile

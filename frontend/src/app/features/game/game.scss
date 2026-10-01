@@ -1,0 +1,16 @@
+// Absolutely fill <main> so the canvas can never affect page layout (no scrollbars).
+:host {
+	display: block;
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+}
+
+.game-host {
+	position: absolute;
+	inset: 0;
+
+	canvas {
+		display: block;
+	}
+}

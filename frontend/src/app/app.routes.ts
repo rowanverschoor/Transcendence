@@ -7,6 +7,7 @@ import { Game } from './features/game/game';
 import { NotFound } from './features/notfound/notfound';
 import { Privacy } from './features/legal/privacy/privacy';
 import { Terms } from './features/legal/terms/terms';
+import { WsDemo } from './features/ws-demo/ws-demo';
 
 
 export const routes: Routes = [
@@ -39,6 +40,10 @@ export const routes: Routes = [
 	{
 		path: 'terms',
 		component: Terms,
+	},
+	{
+		path: 'ws-demo',
+		component: WsDemo,
 	},
 	{
 		path: '**',
