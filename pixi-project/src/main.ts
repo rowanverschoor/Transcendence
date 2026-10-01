@@ -1,4 +1,4 @@
-import { Application, Assets, Point, Sprite } from "pixi.js";
+import { Application, Assets, Point, Rectangle, Sprite, Graphics } from "pixi.js";
 import 'pixi.js/math-extras'
 
 function within(a: {x: number; y: number}, b: {x: number; y: number}, range: number) {
@@ -21,12 +21,38 @@ class Player {
   }
 }
 
+function GetRandomInteger(a: number, b: number) {
+  if (a > b) [a, b] = [b, a];
+  return Math.floor(Math.random() * (b - a + 1)) + a;
+}
+
+class Food {
+  rect: Graphics;
+  alive = true;
+  pos: Point;
+  size = 25;
+
+  constructor(x: number, y: number) {
+    this.rect = new Graphics().rect(0, 0, this.size, this.size).fill("#f0610f");
+    this.pos = new Point(x, y);
+  }
+
+  respawn(maxX: number, maxY: number) {
+    this.pos.set(
+      GetRandomInteger(0, maxX - this.size),
+      GetRandomInteger(0, maxY - this.size)
+    );
+    this.alive = true;
+    this.rect.visible = true;
+  }
+}
+
 (async () => {
   // Create a new application
   const app = new Application();
 
   // Initialize the application
-  await app.init({ background: "#109797", width: 900, height: 600 });
+  await app.init({ background: "#109797", resizeTo: window });
 
   // Append the application canvas to the document body
   document.getElementById("pixi-container")!.appendChild(app.canvas);
@@ -36,10 +62,10 @@ class Player {
   //background.anchor.set(0.5);
 
   if (app.screen.width > app.screen.height) {
-	background.width = app.screen.width * 10;
+	background.width = app.screen.width * 2;
 		background.scale.y = background.scale.x;
   } else {
-	background.height = app.screen.height * 10;
+	background.height = app.screen.height * 2;
 	background.scale.x = background.scale.y;
   }
 
@@ -59,58 +85,6 @@ class Player {
   // Move the sprite to the center of the screen
   bunny.position.set(app.screen.width / 2, app.screen.height / 2);
 
-  // Add the bunny to the stage
-  //app.stage.addChild(background);
-  //app.stage.addChild(bunny);
-  //const player = new Player(background.width / 2, background.height / 2, bunny);
-  //app.stage.eventMode = 'static';
-  //app.stage.hitArea = app.screen;
-
-  // app.ticker.add((time) => {
-  //  //iterations of movement by mouse -> player movement -> background movement -> background moving accordint to player position.
-  //  const mousePos = app.renderer.events.pointer.global;
-  //  const speed = 5;
-	
-    // const vec = mousePos.subtract(bunny.position).normalize().multiplyScalar(speed).add(bunny.position);
-    //const vec = mousePos.subtract(bunny.position).normalize().multiply(new Point(5, 5)).add(bunny.position);
-    // if (!within(mousePos, bunny, 3))
-    //   bunny.position.set(vec.x, vec.y);
-
-	/*const vec = bunny.position.subtract(mousePos).normalize().multiplyScalar(speed).add(background);
-	if (!within(mousePos, bunny, 5))
-  {
-    if (vec.x > 0)
-        vec.x = 0;
-    else if (-vec.x > background.width - app.screen.width)
-        vec.x = -(background.width - app.screen.width);
-    console.log(vec.x, background.width, app.screen.width);
-    if (vec.y > 0)
-        vec.y = 0;
-    else if (-vec.y > background.height - app.screen.height)
-        vec.y = -(background.height - app.screen.height);
-	  background.position.set(vec.x, vec.y);
-  }*/
-
-    //if (!within(mousePos, bunny, 5))
-    //{
-    //  const playerPos = bunny.position.subtract(mousePos).normalize().multiplyScalar(speed).add(player.pos);
-    //  if (playerPos.x < background.width && playerPos.x > app.screen.width)
-    //    background.x = playerPos.x - background.width;
-    //  else if (background.width - playerPos.x <= app.screen.width / 2 && background.width - playerPos.x - bunny.width / 2 > 0)
-    //    bunny.position.x = background.width - playerPos.x;
-    //  else
-    //    playerPos.x = player.pos.x;
-    //  if (playerPos.y < background.height && playerPos.y > app.screen.height)
-    //    background.y = playerPos.y - background.height;
-    //  else if (background.height - playerPos.y <= app.screen.height / 2 && background.height - playerPos.y - bunny.height / 2 > 0)
-    //    bunny.position.y = background.height - playerPos.y;
-    //  else
-    //    playerPos.y = player.pos.y;
-    //  player.setPos(playerPos.x, playerPos.y);
-    //};
-
-  // });
-  // clankerish version cuz I cba and it is kinda what I intended to do with version above but its late
   const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
 app.stage.addChild(background);
@@ -120,27 +94,62 @@ const player = new Player(background.width / 2, background.height / 2, bunny);
 
 const maxCamX = background.width - app.screen.width;
 const maxCamY = background.height - app.screen.height;
-const speed = 10;
+var speed: number = 5;
+
+const foodarray: Food[] = [];
+for (let i = 0; i < 10; i++) {
+	const food = new Food(0, 0);
+	food.respawn(background.width, background.height);
+	foodarray.push(food);
+	app.stage.addChild(food.rect);
+}
+app.stage.addChild(bunny);    
 
 app.ticker.add((time) => {
-  const mouse = app.renderer.events.pointer.global;
+const mouse = app.renderer.events.pointer.global;
 
-  // Both are in screen space, so this direction is valid
-  const toMouse = mouse.subtract(bunny.position);
+// Both are in screen space, so this direction is valid
+const toMouse = mouse.subtract(bunny.position);
 
-  if (toMouse.magnitude() > 5) {
-    const step = toMouse.normalize().multiplyScalar(speed * time.deltaTime);
+if (toMouse.magnitude() > 5) {
+	const step = toMouse.normalize().multiplyScalar(speed * time.deltaTime);
 
-    // Move in world space, keeping the bunny fully inside the background
-    player.setPos(
-      clamp(player.pos.x + step.x, bunny.width / 2, background.width - bunny.width / 2),
-      clamp(player.pos.y + step.y, bunny.height / 2, background.height - bunny.height / 2)
-    );
-  }
+	// Move in world space, keeping the bunny fully inside the background
+	player.setPos(
+	clamp(player.pos.x + step.x, bunny.width / 2, background.width - bunny.width / 2),
+	clamp(player.pos.y + step.y, bunny.height / 2, background.height - bunny.height / 2)
+	);
+}
 
-  // Camera centers on the player, clamped to the world bounds
-  const camX = clamp(player.pos.x - app.screen.width / 2, 0, maxCamX);
-  const camY = clamp(player.pos.y - app.screen.height / 2, 0, maxCamY);
+const camX = clamp(player.pos.x - app.screen.width / 2, 0, maxCamX);
+const camY = clamp(player.pos.y - app.screen.height / 2, 0, maxCamY);
+
+for (let i = 0; i < 10; i++)
+{
+	const fx = foodarray[i].pos.x - camX;
+	const fy = foodarray[i].pos.y - camY;
+	foodarray[i].rect.position.set(fx, fy);
+
+	const bx = player.pos.x - camX - bunny.width / 2;
+	const by = player.pos.y - camY - bunny.height / 2;
+
+	if (
+		bx < fx + foodarray[i].size &&
+		bx + bunny.width > fx &&
+		by < fy + foodarray[i].size &&
+		by + bunny.height > fy
+	) {
+		player.sprite.width *= 1.1;
+		player.sprite.height *= 1.1;
+		speed = Math.max(speed * 0.95, 3);
+		foodarray[i].respawn(background.width, background.height);
+		console.log(speed);
+	}
+
+}
+
+background.position.set(-camX, -camY);
+bunny.position.set(player.pos.x - camX, player.pos.y - camY);
 
   background.position.set(-camX, -camY);
   bunny.position.set(player.pos.x - camX, player.pos.y - camY);
