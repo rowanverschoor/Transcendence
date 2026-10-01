@@ -32,7 +32,9 @@ export class WsDemo implements OnInit, OnDestroy {
 	};
 
 	ngOnInit(): void {
-		this.socket = io("ws://localhost:8080/");
+		// Same-origin: /socket.io is proxied to the backend (Angular dev-server
+		// proxy in dev, nginx in the container). No host in code, works behind the tunnel.
+		this.socket = io("/");
 
 		this.socket.on("connect", (): void => {
 			this.connected.set(true);
