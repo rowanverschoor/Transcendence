@@ -1,6 +1,6 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from "@angular/core";
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, signal } from "@angular/core";
 import { io, type Socket } from "socket.io-client";
-import { MouseMove, SequencedFactoryFactory, ServerMessage } from "@transcendence/shared";
+import { MouseMove, SequencedFactoryFactory, ServerMessage } from "@transcendence/shared/protocol";
 
 @Component({
 	imports: [],
@@ -14,6 +14,9 @@ export class WsDemo implements OnInit, OnDestroy {
 	private mouseY = 0;
 	private readonly createMouseMove = SequencedFactoryFactory(0, MouseMove);
 
+	protected readonly connected = signal(false);
+	protected readonly lastMessage = signal("");
+
 	@ViewChild("output", { static: true }) private readonly output!: ElementRef<HTMLDivElement>;
 	@ViewChild("mousepos", { static: true }) private readonly mousepos!: ElementRef<HTMLDivElement>;
 
@@ -21,6 +24,10 @@ export class WsDemo implements OnInit, OnDestroy {
 		this.mouseX = event.clientX;
 		this.mouseY = event.clientY;
 		this.mousepos.nativeElement.innerHTML = `X: ${this.mouseX} Y: ${this.mouseY}`;
+		// Check before constructing the message: seq must only count sent messages.
+		if (!this.socket || !this.socket.connected) {
+			return;
+		}
 		this.sendMessage(JSON.stringify(this.createMouseMove({ x: this.mouseX, y: this.mouseY })));
 	};
 
@@ -28,27 +35,28 @@ export class WsDemo implements OnInit, OnDestroy {
 		this.socket = io("ws://localhost:8080/");
 
 		this.socket.on("connect", (): void => {
+			this.connected.set(true);
 			this.writeToScreen("CONNECTED");
 		});
 
 		this.socket.on("disconnect", (): void => {
+			this.connected.set(false);
 			this.writeToScreen("DISCONNECTED");
 		});
 
 		// The server emits the same JSON strings as before, just over the "message" event.
 		this.socket.on("message", (data: string): void => {
 			try {
-				this.output.nativeElement.innerHTML = `RECEIVED: ${data}`;
 				const msg = JSON.parse(data);
 				console.log(msg);
 
 				const sm: ServerMessage = ServerMessage.parse(msg);
 				switch (sm.type) {
 					case "forward":
-						this.output.nativeElement.innerHTML = `Server forwarded client message: ${JSON.stringify(sm.msg)}`;
+						this.lastMessage.set(JSON.stringify(sm.msg));
 						break;
 					case "announcement":
-						this.output.nativeElement.innerHTML = `Server announcement: ${sm.text}`;
+						this.lastMessage.set(`Announcement: ${sm.text}`);
 						break;
 
 					default:
@@ -61,6 +69,7 @@ export class WsDemo implements OnInit, OnDestroy {
 		});
 
 		this.socket.on("connect_error", (error: Error): void => {
+			this.connected.set(false);
 			this.writeToScreen(`ERROR: ${error.message}`);
 		});
 
