@@ -1,0 +1,279 @@
+// Rough, hand-drawn looking corners
+@mixin blob($variant: 1) {
+  @if $variant == 1 { border-radius: 58% 42% 55% 45% / 45% 55% 45% 55%; }
+  @else if $variant == 2 { border-radius: 42% 58% 47% 53% / 55% 45% 55% 45%; }
+  @else { border-radius: 50% 50% 46% 54% / 52% 48% 52% 48%; }
+}
+
+@mixin panel {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 22px 26px 20px 28px;
+  padding: 1.25rem 1.5rem;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+}
+h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); }
+h2 { font-size: 1.35rem; }
+
+.muted { color: var(--muted); }
+
+a { color: var(--secondary); }
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+// Nav
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+  }
+  &__dot {
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    @include blob(1);
+  }
+  &__links {
+    display: flex;
+    gap: 1.25rem;
+    margin-left: auto;
+    list-style: none;
+    padding: 0;
+    margin-block: 0;
+    a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 700;
+      &:hover, &[aria-current="page"] { color: var(--text); }
+    }
+  }
+}
+
+// Buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 1rem var(--font-body);
+  padding: 0.7rem 1.6rem;
+  border: 2px solid transparent;
+  border-radius: 999px 900px 999px 950px;
+  cursor: pointer;
+  transition: transform 0.12s;
+  &:active { transform: scale(0.97); }
+
+  &--primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    &:hover { filter: brightness(1.06); }
+  }
+  &--ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+    &:hover { border-color: var(--muted); }
+  }
+}
+
+.input {
+  font: 600 1rem var(--font-body);
+  color: var(--text);
+  background: var(--page);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  padding: 0.7rem 1.2rem;
+  min-width: 0;
+  &::placeholder { color: var(--muted); }
+  &:focus-visible { outline: none; border-color: var(--secondary); }
+}
+
+// Hero
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 2.5rem;
+  align-items: center;
+  padding: 2rem 0 3rem;
+
+  p { max-width: 34ch; font-size: 1.1rem; }
+
+  &__form {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    .input { flex: 1 1 180px; }
+  }
+}
+
+.field {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--game);
+  background-image:
+    linear-gradient(rgba(155, 199, 164, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155, 199, 164, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  border: 2px solid var(--border);
+  border-radius: 34px 40px 30px 44px;
+  overflow: hidden;
+
+  canvas { width: 100%; height: 100%; display: block; }
+}
+
+// Dashboard grid
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  padding-bottom: 3rem;
+}
+
+.panel { @include panel; }
+
+// Profile
+.profile {
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  &__avatar {
+    width: 64px;
+    height: 64px;
+    flex: none;
+    background: var(--secondary);
+    @include blob(2);
+    display: grid;
+    place-items: center;
+    font: 600 1.5rem var(--font-display);
+    color: var(--page);
+  }
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    text-align: center;
+    margin: 0;
+    div {
+      background: var(--page);
+      border-radius: 16px 18px 14px 20px;
+      padding: 0.6rem 0.25rem;
+    }
+    dt { font-size: 0.8rem; color: var(--muted); }
+    dd { margin: 0; font: 600 1.3rem var(--font-display); }
+  }
+  .win  { color: var(--success); }
+  .loss { color: var(--error); }
+}
+
+// Leaderboard
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 2px dashed var(--border);
+    &:last-child { border-bottom: 0; }
+  }
+  &__rank { width: 1.5rem; color: var(--muted); font-weight: 700; }
+  &__cell {
+    width: 18px;
+    height: 18px;
+    @include blob(3);
+  }
+  &__mass { margin-left: auto; font-weight: 700; }
+  .is-you { color: var(--primary); }
+}
+
+// Settings
+.setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.toggle {
+  appearance: none;
+  width: 48px;
+  height: 28px;
+  flex: none;
+  background: var(--border);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    background: var(--text);
+    @include blob(1);
+    transition: transform 0.15s;
+  }
+  &:checked { background: var(--secondary); }
+  &:checked::after { transform: translateX(20px); background: var(--page); }
+}
+
+// Messages
+.note {
+  padding: 0.75rem 1rem;
+  border-radius: 16px 20px 14px 18px;
+  border: 2px solid currentColor;
+  font-weight: 700;
+  margin-top: 0.75rem;
+  &--ok  { color: var(--success); }
+  &--bad { color: var(--error); }
+}
+
+// Palette reference strip
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 3rem;
+  div { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+  span {
+    width: 26px;
+    height: 26px;
+    border: 2px solid var(--border);
+    @include blob(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; }
+  .nav__links { display: none; }
+}
+

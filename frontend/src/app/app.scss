@@ -1,11 +1,1 @@
-:host {
-	display: flex;
-	flex-direction: column;
-	height: 100dvh;
-	color: #a144eb;
-}
-
-main {
-	flex: 1;
-	min-height: 0;
-}
+:host { color: var(--text); }

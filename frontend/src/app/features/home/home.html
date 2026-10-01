@@ -1,1 +1,72 @@
-<p>home works!</p>
+<div class="wrap">
+  <nav class="nav" aria-label="Main">
+    <a class="nav__logo" href="#"><span class="nav__dot"></span>Transendence</a>
+    <ul class="nav__links">
+      <li><a href="#" aria-current="page">Play</a></li>
+      <li><a href="#">Leaderboard</a></li>
+      <li><a href="#">Friends</a></li>
+      <li><a href="#">Profile</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <div>
+      <h1>Eat the small ones. Avoid the big ones.</h1>
+      <p class="muted">Pick a name and jump into a room with up to 8 players.</p>
+      <form class="hero__form" (submit)="$event.preventDefault()">
+        <input class="input" type="text" placeholder="Your nickname" aria-label="Nickname">
+        <button class="btn btn--primary" type="submit">Play</button>
+        <button class="btn btn--ghost" type="button">Watch a game</button>
+      </form>
+    </div>
+    <div class="field"><canvas #game aria-label="Game preview with moving blobs"></canvas></div>
+  </section>
+
+  <section class="grid">
+    <article class="panel profile">
+      <div class="profile__head">
+        <div class="profile__avatar">R</div>
+        <div>
+          <h2>rowan</h2>
+          <span class="muted">Level 12, online</span>
+        </div>
+      </div>
+      <dl class="profile__stats">
+        <div><dt>Wins</dt><dd class="win">24</dd></div>
+        <div><dt>Losses</dt><dd class="loss">9</dd></div>
+        <div><dt>Best mass</dt><dd>1,840</dd></div>
+      </dl>
+    </article>
+
+    <article class="panel">
+      <h2>Leaderboard</h2>
+      <ol class="board">
+        <li><span class="board__rank">1</span><span class="board__cell" style="background:var(--secondary)"></span>mossy<span class="board__mass">2,410</span></li>
+        <li class="is-you"><span class="board__rank">2</span><span class="board__cell" style="background:var(--primary)"></span>rowan<span class="board__mass">1,840</span></li>
+        <li><span class="board__rank">3</span><span class="board__cell" style="background:var(--success)"></span>kiwi<span class="board__mass">1,295</span></li>
+        <li><span class="board__rank">4</span><span class="board__cell" style="background:var(--muted)"></span>guest_42<span class="board__mass">610</span></li>
+      </ol>
+    </article>
+
+    <article class="panel">
+      <h2>Settings</h2>
+      <label class="setting">Show player names <input class="toggle" type="checkbox" checked></label>
+      <label class="setting">Show mass <input class="toggle" type="checkbox"></label>
+      <label class="setting">Dark grid <input class="toggle" type="checkbox" checked></label>
+      <div class="note note--ok">Settings saved</div>
+      <div class="note note--bad">Couldn't reach the server. Try again.</div>
+    </article>
+  </section>
+
+  <section class="swatches" aria-label="Palette F colors">
+    <div><span style="background:var(--page)"></span>page #2A2233</div>
+    <div><span style="background:var(--surface)"></span>surface #362B42</div>
+    <div><span style="background:var(--border)"></span>border #4C3F5A</div>
+    <div><span style="background:var(--text)"></span>text #F2E6EA</div>
+    <div><span style="background:var(--muted)"></span>muted #A999B2</div>
+    <div><span style="background:var(--primary)"></span>primary #F29CA3</div>
+    <div><span style="background:var(--secondary)"></span>secondary #9BC7A4</div>
+    <div><span style="background:var(--success)"></span>success #B5D98F</div>
+    <div><span style="background:var(--error)"></span>error #E86F5F</div>
+  </section>
+</div>
