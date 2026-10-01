@@ -1,5 +1,5 @@
 import { Application, Assets } from 'pixi.js';
-import { World } from '../engine/world';
+import { World } from '@transcendence/shared/game';
 import { Scene } from './scene';
 
 const BUNNY_URL = '/bunny.png';

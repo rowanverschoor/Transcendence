@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Texture } from 'pixi.js';
-import { Vec } from '../engine/entities';
-import { World } from '../engine/world';
+import { Vec } from '@transcendence/shared/game';
+import { World } from '@transcendence/shared/game';
 import { createGrid } from './grid';
 
 const GRID_CELL = 50;

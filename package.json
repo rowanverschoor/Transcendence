@@ -6,7 +6,7 @@
   "workspaces": ["backend", "frontend", "shared"],
   "scripts": {
     "ng": "npm run ng -w frontend",
-    "dev": "npm run watch -w backend & npm run start -w frontend",
+    "dev": "npm run start -w frontend & npm run watch -w backend",
     "start:frontend": "npm run start -w frontend",
     "build:frontend": "npm run build -w frontend",
     "watch:frontend": "npm run watch -w frontend",

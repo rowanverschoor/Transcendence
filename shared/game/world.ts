@@ -1,4 +1,4 @@
-import { Food, FOOD_SIZE, grow, overlaps, Player, randomInt, STOP_RANGE, Vec } from './entities';
+import { Food, FOOD_SIZE, grow, overlaps, Player, randomInt, STOP_RANGE, Vec } from './entities.js';
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
