@@ -15,10 +15,13 @@ export class Game {
 		const destroyRef = inject(DestroyRef);
 		// afterNextRender: DOM host exists and (if SSR ever lands) we're in the browser.
 		afterNextRender(async () => {
+			let destroyed = false;
+			destroyRef.onDestroy(() => {
+				destroyed = true;
+				this.app?.destroy();
+			});
 			this.app = await PixiApp.create(this.host().nativeElement);
-			// destroyRef.onDestroy inside afterNextRender avoids tearing down an
-			// app whose init() was still pending when the user navigated away.
-			destroyRef.onDestroy(() => this.app?.destroy());
+			if (destroyed) this.app.destroy(); // left the page while create() was pending
 		});
 	}
 }

@@ -53,9 +53,8 @@ export class PixiApp {
 	}
 
 	destroy(): void {
-		// texture: false — the Texture is cached by Assets and must survive for
-		// the next engine instance; unload it explicitly through Assets.
+		// texture: false — the Texture is cached by Assets and 
+		// shared across engine instances, so it must survive destroy.
 		this.app.destroy(true, { children: true, texture: false });
-		void Assets.unload(BUNNY_URL);
 	}
 }

@@ -96,7 +96,10 @@ export class Home implements AfterViewInit, OnDestroy {
       const k = r * (1 + 0.05 * Math.sin(a * 3 + t) + 0.03 * Math.cos(a * 5 - t));
       const px = x + Math.cos(a) * k;
       const py = y + Math.sin(a) * k;
-      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      if (i) 
+        ctx.lineTo(px, py);
+      else
+        ctx.moveTo(px, py);
     }
     ctx.closePath();
   }
