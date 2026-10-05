@@ -1,1 +1,50 @@
 /* You can add global styles to this file, and also import other style files */
+
+// Palette F: Sakura dusk
+$palette: (
+  "page": #2a2233,
+  "surface": #362b42,
+  "border": #4c3f5a,
+  "text": #f2e6ea,
+  "muted": #a999b2,
+  "primary": #f29ca3,
+  "on-primary": #2a2233,
+  "secondary": #9bc7a4,
+  "game": #362b42,
+  "success": #b5d98f,
+  "error": #e86f5f,
+);
+
+:root {
+  @each $name, $value in $palette {
+    --#{$name}: #{$value};
+  }
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+:focus-visible {
+  outline: 3px solid var(--secondary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
