@@ -3,6 +3,7 @@ import { World } from '@transcendence/shared/game';
 import { Scene } from './scene';
 
 const BUNNY_URL = '/bunny.png';
+const EVIL_BUNNY = '/EVIL_BUNNY.png';
 const FOOD_COUNT = 10;
 /** World is this many viewports wide/tall, measured when the app is created. */
 const WORLD_SCALE = 3;
@@ -12,6 +13,7 @@ export class PixiApp {
 	readonly app = new Application();
 	private world!: World;
 	private scene!: Scene;
+	
 
 	/**
 	 * Async factory: `Application.init()` must resolve before the canvas exists.
@@ -27,9 +29,16 @@ export class PixiApp {
 		host.appendChild(engine.app.canvas);
 
 		const texture = await Assets.load(BUNNY_URL);
+		const evil_texture = await Assets.load(EVIL_BUNNY);
 		const { width, height } = engine.app.screen;
-		engine.world = new World(width * WORLD_SCALE, height * WORLD_SCALE, texture.width, texture.height, FOOD_COUNT);
-		engine.scene = new Scene(engine.world, texture);
+		const enemy = {
+			pos: { x: width * WORLD_SCALE / 2, y: height * WORLD_SCALE / 2 },
+			width: evil_texture.width,
+			height: evil_texture.height,
+			speed: 5,
+		};
+		engine.world = new World(width * WORLD_SCALE, height * WORLD_SCALE, texture.width, texture.height, FOOD_COUNT, enemy);
+		engine.scene = new Scene(engine.world, texture, evil_texture);
 		engine.app.stage.addChild(engine.scene.root);
 
 		engine.startTicking();

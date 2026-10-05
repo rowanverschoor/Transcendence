@@ -5,6 +5,7 @@ const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min)
 /** Game state and rules. Plain TS: no Pixi, no Angular, no DOM. */
 export class World {
 	readonly player: Player;
+	readonly enemy: Player;
 	readonly foods: Food[] = [];
 
 	constructor(
@@ -13,6 +14,7 @@ export class World {
 		playerWidth: number,
 		playerHeight: number,
 		foodCount: number,
+		enemy: Player,
 	) {
 		this.player = {
 			pos: { x: width / 2, y: height / 2 },
@@ -20,6 +22,7 @@ export class World {
 			height: playerHeight,
 			speed: 5,
 		};
+		this.enemy = enemy;
 		for (let i = 0; i < foodCount; i++) {
 			const food: Food = { pos: { x: 0, y: 0 }, size: FOOD_SIZE };
 			this.respawn(food);
