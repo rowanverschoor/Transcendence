@@ -2,12 +2,18 @@
   <a routerLink="/">Home</a>
   <a routerLink="/profile">Profile</a>
   <a routerLink="/game">Game</a>
-  <a routerLink="/login">Login</a>
-  <a routerLink="/register">Register</a>
   <a routerLink="/privacy">Privacy</a>
   <a routerLink="/terms">Terms</a>
+  <div class="nav-auth">
+  @if (auth.currentUser(); as user) {
+    <span>{{ user.displayName }}</span>
+    <button type="button" (click)="auth.logout()">Log out</button>
+  } @else {
+    <a routerLink="/login">Login</a>
+    <a routerLink="/register">Register</a>
+  }
+  </div>
 </nav>
 <main>
-  <p> Current User: {{ auth.currentUser()?.username }}</p>
   <router-outlet />
 </main>

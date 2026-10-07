@@ -6,7 +6,7 @@ a decision changes or a milestone is finished.
 
 Owner: a0f. Last updated: 2026-10-07.
 
-Decisions that are expensive to reverse get their own ADR in
+Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
 
 ## Overview
@@ -37,7 +37,7 @@ planned when we start it, not before.
 - **Goal:** login and register pages using a fake `AuthService`, logging in by email.
 - **Done when:** you can log in and out in the browser and the page shows the
   current user. No backend involved.
-- **Watch out:** display names (Q1).
+- **Watch out:** nothing open.
 
 ### 2. Shared auth contract
 - **Goal:** request and response types for register and login live in
@@ -89,15 +89,25 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 - Until Postgres is running, users live in memory behind a `UsersRepository`
   interface, so switching storage only touches one place. (2026-10-07)
 - The database will be PostgreSQL. Planned, to be made official in ADR 0004.
+- Users have a display name that other players see, separate from the email
+  they log in with. Display names are unique ignoring case, so `Sam` and `sam`
+  can't both exist and nobody can pose as someone else by changing letter
+  case. A name is shown as the user typed it. (2026-10-07)
+
+## Follow-ups
+
+Smaller things to handle in a specific milestone.
+
+- **Milestone 3:** limit display names to a small set of characters (for
+  example `a-z`, `0-9`, `_`). Unicode has look-alike letters, such as a
+  Cyrillic `а` that looks exactly like a Latin `a`, which would get around
+  the case rule.
 
 ## Open questions
 
 Check this list before starting a milestone. When a question is answered,
 move it to Decisions (or an ADR) with the date.
 
-- **Q1. Display names.** Do users have a display name separate from their
-  email? If so, must it be unique, and is `Sam` the same as `sam`?
-  Suggestion: yes, so other players never see someone's email.
 - **Q2. Emails.** Do we lowercase and trim emails before storing them? Do we
   verify that an email is real? This also matters for linking OAuth accounts
   later.

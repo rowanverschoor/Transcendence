@@ -1,7 +1,7 @@
 import { Service, signal, computed } from "@angular/core";
 
 export interface User {
-	username: string;
+	displayName: string;
 	email: string;
 }
 
@@ -12,14 +12,15 @@ export class AuthService {
 	currentUser = signal<User | null>(null);
 	isLoggedIn = computed(() => this.currentUser() !== null);
 
-	async login(username: string, password: string): Promise<void>
+	async login(email: string, password: string): Promise<void>
 	{
 		await new Promise(resolve => setTimeout(resolve, 500));
 		if (password != 'password')
 		{
 			throw new Error('Incorrect Password');
 		}
-		this.currentUser.set({ username: username, email: `${username}@codam.student.nl`});
+		// Fake: the real display name comes from the server (auth milestone 5)
+		this.currentUser.set({ displayName: 'Stub User', email: email});
 
 	}
 

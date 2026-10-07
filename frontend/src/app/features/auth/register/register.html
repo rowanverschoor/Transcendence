@@ -2,15 +2,15 @@
 
 <form>
   <div>
-    <label for="username">Username</label>
-    <input id="username" autocomplete="username" />
-    <p>Username is required.</p>
-    <p>Username must be 3–20 characters.</p>
+    <label for="displayName">Display name</label>
+    <input id="displayName" name="displayName" autocomplete="nickname" />
+    <p>Display name is required.</p>
+    <p>Display name must be 3–20 characters.</p>
   </div>
 
   <div>
     <label for="email">Email</label>
-    <input id="email" type="email" autocomplete="email" />
+    <input id="email" name="email" type="email" autocomplete="username" />
     <p>Email is required.</p>
     <p>Enter a valid email address.</p>
   </div>
@@ -28,7 +28,7 @@
     <p>Passwords do not match.</p>
   </div>
 
-  <p role="alert">Server error message goes here (e.g. "Username already taken").</p>
+  <p role="alert">Server error message goes here (e.g. "Display name already taken").</p>
 
   <button type="submit">Create account</button>
 </form>
