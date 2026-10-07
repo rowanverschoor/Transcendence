@@ -1,0 +1,21 @@
+[settings]
+experimental = true
+
+[deps.npm]
+auto = true
+
+[tasks.watch]
+description = "Run the server in watch mode"
+run = "npm run watch"
+
+[tasks.check]
+description = "Run type check without emitting"
+run = "npm run check"
+
+[tasks.fmt]
+description = "Format source files"
+run = "npx prettier --write src/**/*.ts"
+
+[tasks.lint]
+description = "Lint source files"
+run = "npx eslint ."

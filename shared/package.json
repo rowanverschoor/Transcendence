@@ -1,0 +1,13 @@
+{
+  "name": "@transcendence/shared",
+  "type": "module",
+  "main": "./protocol.ts",
+  "exports": {
+    ".": "./protocol.ts",
+    "./protocol": "./protocol.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}
+
