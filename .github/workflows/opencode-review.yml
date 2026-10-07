@@ -2,7 +2,7 @@ name: opencode-review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   review:
+    if: github.event.pull_request.head.repo.fork != true && github.event.pull_request.draft != true
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -25,7 +27,7 @@ jobs:
           persist-credentials: false
 
       - name: Run opencode review
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@a3b97d9090ccf4aa9ac32268486283e3131e36b4 # github-v1.2.25
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,3 +46,5 @@ jobs:
             Final answer format: first line "Verdict: LGTM" or "Verdict: Changes requested",
             then a numbered list of findings, each with a `path/to/file.ts:line` reference
             and a one-line fix suggestion.
+            If the verdict is "Verdict: LGTM", end the comment with exactly this line:
+            <img src="https://static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/67/c5/J1x8j3B5xmh67toPw8Q.gif" alt="Speed Triple T" width="165" height="165">
