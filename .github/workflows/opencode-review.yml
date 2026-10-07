@@ -1,0 +1,46 @@
+name: opencode-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: opencode-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run opencode review
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode-go/glm-5.3
+          use_github_token: true
+          prompt: |
+            Review this pull request. Do not modify, commit, or push anything.
+            You may run `npm ci`, `npx eslint .`, and workspace builds/tests to ground findings.
+            Focus on:
+            - Bugs, race conditions, and unhandled error paths
+            - TypeScript conventions used in this repo: literal-union types for message
+              discriminators, readonly fields, constructor injection, no global singletons
+            - Security: input validation, secrets exposure, WebSocket message handling
+            Report only real issues; skip style nitpicks already covered by eslint.
+            Final answer format: first line "Verdict: LGTM" or "Verdict: Changes requested",
+            then a numbered list of findings, each with a `path/to/file.ts:line` reference
+            and a one-line fix suggestion.
