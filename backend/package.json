@@ -13,6 +13,7 @@
     "@nestjs/platform-socket.io": "^11.1.8",
     "@nestjs/websockets": "^11.1.8",
     "@transcendence/shared": "*",
+    "nanoid": "^3.3.19",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
