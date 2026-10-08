@@ -4,28 +4,36 @@
   "scripts": {
     "watch": "tsx watch src/main.ts",
     "check": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
     "serve": "tsx src/main.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.8",
+    "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^11.1.8",
     "@nestjs/platform-express": "^11.1.8",
     "@nestjs/platform-socket.io": "^11.1.8",
     "@nestjs/websockets": "^11.1.8",
     "@transcendence/shared": "*",
+    "express-session": "^1.19.0",
     "nanoid": "^3.3.19",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
     "@types/node": "^26.0.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.70.0"
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.11"
   }
 }
