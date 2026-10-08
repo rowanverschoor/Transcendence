@@ -1,4 +1,5 @@
-# Development stack: bind mounts + live reloading (tsx watch / ng serve).
+# Development stack: bind mounts + live reloading (node --watch via the
+# @swc-node/register hook / ng serve).
 # Usage: docker compose -f docker-compose.dev.yml up --build
 name: transcendence-dev
 
@@ -8,7 +9,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    # Same image as prod; tsx (a runtime dep) provides `npm run watch`.
+    # Same image as prod; the SWC register hook (a runtime dep) provides
+    # `npm run watch`.
     command: npm run watch
     volumes:
       - ./shared:/app/shared:z

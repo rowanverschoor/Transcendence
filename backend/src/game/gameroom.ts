@@ -11,6 +11,8 @@ import { RandomFromTo } from "./utils.js";
 import type { GameConfig } from "./game.config.js";
 import type { GameSnapshot } from "@transcendence/shared";
 import type { Socket, Server } from "socket.io";
+import { Injectable, Inject } from "@nestjs/common";
+import { GAME_CONFIG } from "./game.config.js";
 import { nanoid } from "nanoid";
 
 const makeFood = (cfg: GameConfig): Food => {
@@ -95,4 +97,44 @@ export class GameRoom {
   });
 }
 
-export const Rooms: Record<RoomId, GameRoom> = {};
+/**
+ * Nest-owned registry over live rooms. Replaces what used to be the module
+ * global `Rooms` record: rooms are runtime-created per game, so they cannot be
+ * providers themselves — the registry is, and it owns the lifecycle.
+ */
+@Injectable()
+export class RoomRegistry {
+  private readonly rooms = new Map<RoomId, GameRoom>();
+
+  constructor(
+    // String token, not by-type: `design:paramtypes` reflects interface
+    // parameters as `Object`, so GameConfig can never resolve by type.
+    @Inject(GAME_CONFIG) private readonly config: GameConfig,
+  ) {}
+
+  create(id: RoomId, server: Server, capacity?: number): GameRoom {
+    const room = new GameRoom(this.config, id, server, capacity);
+    this.rooms.set(id, room);
+    return room;
+  }
+
+  get(id: RoomId): GameRoom | undefined {
+    return this.rooms.get(id);
+  }
+
+  /** First registered room, used as the fallback join target. */
+  first(): GameRoom | undefined {
+    return this.rooms.values().next().value;
+  }
+
+  /** Room a given socket has already joined, if any. */
+  findForSocket(socketId: Socket["id"]): GameRoom | undefined {
+    for (const room of this.rooms.values())
+      if (room.clientIds[socketId] !== undefined) return room;
+    return undefined;
+  }
+
+  removeClient(socketId: Socket["id"]): void {
+    for (const room of this.rooms.values()) room.removeClient(socketId);
+  }
+}
