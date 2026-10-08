@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, viewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, AfterViewInit, viewChild } from '@angular/core';
 import { GameSnapshot, JoinRequest, ServerMessage } from '@transcendence/shared';
 import { io, Socket } from 'socket.io-client';
 import { PixiApp } from './render/pixi';
@@ -11,16 +11,32 @@ export let socket: Socket;
 	styleUrl: './game.scss',
 	templateUrl: './game.html',
 })
-export class Game implements OnInit, OnDestroy {
+export class Game implements AfterViewInit, OnDestroy {
+	private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('gameHost');
 	private snap: GameSnapshot | undefined;
 	private app?: PixiApp;
 	private appPromise?: Promise<PixiApp>;
+	private destroyed = false;
 
-	ngOnInit(): void {
+	async ngAfterViewInit(): Promise<void> {
 		// create pixi ?
-		this.appPromise = PixiApp.create(viewChild.required<ElementRef<HTMLDivElement>>('gameHost')().nativeElement);
-		
+		const app = await PixiApp.create(this.host().nativeElement);
 
+		if (this.destroyed) {
+			app.destroy();
+			return;
+		}
+		this.app = app;
+		this.connect();
+	}
+
+	ngOnDestroy(): void {
+		this.destroyed = true;
+		socket?.disconnect();
+		this.app?.destroy();
+	}
+
+	connect(): void {
 		socket = io("/");
 
 		socket.on("connect", (): void => {
@@ -62,9 +78,5 @@ export class Game implements OnInit, OnDestroy {
 				return;
 			}
 		})
-	}
-
-	ngOnDestroy(): void {
-		//clean ?
 	}
 }
