@@ -13,12 +13,20 @@ auto = true
 node = "26"
 
 [tasks.dev]
-description = "Run backend (watch) and frontend dev server"
-run = "npm run dev"
+description = "Build and run the dev compose stack (bind mounts, live reload)"
+run = "mise-tasks/compose.sh -f docker-compose.dev.yml up --build"
+
+[tasks.dev-down]
+description = "Stop the dev compose stack"
+run = "mise-tasks/compose.sh -f docker-compose.dev.yml down"
 
 [tasks.start]
-description = "Run the backend server"
-run = "npm run serve -w backend"
+description = "Build and run the production compose stack"
+run = "mise-tasks/compose.sh up --build -d"
+
+[tasks.down]
+description = "Stop the production compose stack"
+run = "mise-tasks/compose.sh down"
 
 [tasks.check]
 description = "Type-check without emitting"
