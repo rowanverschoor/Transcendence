@@ -1,18 +1,31 @@
 /* You can add global styles to this file, and also import other style files */
 
-// Palette F: Sakura dusk
 $palette: (
   "page": #2a2233,
   "surface": #362b42,
   "border": #4c3f5a,
   "text": #f2e6ea,
   "muted": #a999b2,
-  "primary": #f29ca3,
+  "primary": #9a709a,
   "on-primary": #2a2233,
   "secondary": #9bc7a4,
   "game": #362b42,
   "success": #b5d98f,
   "error": #e86f5f,
+);
+
+$palette2: (
+  "page": #ffffff,
+  "surface": #dbdbdb,
+  "border": #b0b0b0,
+  "text": #464444,
+  "muted": #6d6c6b,
+  "primary": #b4b0b4,
+  "on-primary": #474747,
+  "secondary": #bec0be,
+  "game": #d6d8da,
+  "success": #373836,
+  "error": #54504f,
 );
 
 :root {

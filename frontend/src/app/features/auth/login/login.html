@@ -1,24 +1,34 @@
-<h1>Log in</h1>
+<section class="auth-card">
+  <h1>Log in</h1>
 
-<form>
-  <div>
-    <label for="email">Email</label>
-    <input id="email" name="email" type="email" autocomplete="username" />
-    <p>Email is required</p>
-  </div>
+  <form (submit)="onSubmit($event)" novalidate>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username"
+        [attr.aria-invalid]="submitted() && !email()" (input)="onInput('email', $event)" />
+      @if (submitted() && !email()) {
+        <p class="error">Email is required</p>
+      }
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password"
+        [attr.aria-invalid]="submitted() && !password()" (input)="onInput('password', $event)" />
+      @if (submitted() && !password()) {
+        <p class="error">Password is required</p>
+      }
+    </div>
+    @if (serverError()) {
+      <p class="form-error" role="alert">{{ serverError() }}</p>
+    }
+    <button type="submit" class="btn btn--primary">Log in</button>
+    <button type="register" class="btn btn--ghost">Register</button>
+  </form>
+</section>
 
-  <div>
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password" autocomplete="current-password" />
-    <p>Password is required</p>
-  </div>
-
-  <p role="alert">Server error message goes here.</p>
-
-  <button type="submit">Log in</button>
-
-  <button type="button" (click)="auth.login('stub_email@codam.student.nl', 'password')">LOGIN TEST</button>
-  <button type="button" (click)="auth.logout()">LOGOUT TEST</button>
-</form>
-
-<p>No account? <a href="/register">Register</a></p>
+<!-- Temporary: remove when AuthService talks to the backend (milestone 5) -->
+<section class="dev-tools">
+  <h2>Dev tools</h2>
+<button type="button" class="btn btn--ghost" (click)="auth.login('stub_email@codam.student.nl', 'password')">LOGIN TEST</button>
+<button type="button" class="btn btn--ghost" (click)="auth.logout()">LOGOUT TEST</button>
+</section>
