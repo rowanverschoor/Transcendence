@@ -32,8 +32,9 @@ uses its `User` type. Nothing talks to the backend yet.
 
 ## Roadmap
 
-Each milestone is one PR. The individual changes inside a milestone are
-planned when we start it, not before.
+Each milestone is one PR, unless it is too big to review well, then it is
+split into PRs that each work on their own. The individual changes inside
+a milestone are planned when we start it, not before.
 
 ### 1. Frontend stub (done)
 - **Goal:** login and register pages using a fake `AuthService`, logging in by email.
@@ -55,7 +56,16 @@ planned when we start it, not before.
   and invalid input are rejected. Tests pass.
 - **Watch out:** keep the password hash out of the main user record, and keep
   "check the password" separate from "start a session". Both make OAuth
-  easier to add later. Email rules (Q2).
+  easier to add later.
+- **PRs:** about 550 lines of code and tests, too much for one review, so it
+  is split by feature:
+  - **Before:** the `@Inject` check (its own PR, see Follow-ups) and the
+    contract changes in `shared/auth.ts` (its own PR).
+  - **3a. Register:** Vitest in the backend, the zod validation pipe, the
+    users store, password hashing and `POST /auth/register`. Sets the
+    pattern other endpoints will copy.
+  - **3b. Login:** checking the password, the same answer and timing for
+    unknown emails, and `POST /auth/login`.
 
 ### 4. Sessions and protected routes
 - **Goal:** the backend remembers who is logged in and refuses protected
@@ -128,27 +138,78 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   to production and needs testing. That is a choice for whoever owns the
   backend tooling, and code with `@Inject` keeps working after a switch.
   (2026-10-08)
+- Passwords are hashed with scrypt, using Node's built-in `crypto.scrypt`,
+  with a random salt per user. Hashing happens only in the backend, the
+  frontend sends the password as typed over HTTPS. OWASP ranks Argon2id
+  first and scrypt second. Node only has Argon2 built in from version 24,
+  and our backend Docker image runs Node 22, so Argon2id would mean a Docker
+  change or an extra package that needs a native build. scrypt needs
+  neither, and scrypt is secure enough for this project. (2026-10-08)
+- Backend tests use Vitest, the same tool the frontend uses. It handles
+  TypeScript and ES modules without extra setup, and it translates code the
+  same way our backend runs, so a missing `@Inject` breaks in tests just like
+  it does for real (checked 2026-10-08). Jest, which the NestJS docs use,
+  needs extra setup, and with `ts-jest` the tests would pass even when an
+  `@Inject` is missing. (2026-10-08)
+- Error responses use the NestJS default shape, for example
+  `{ "statusCode": 409, "message": "Email already in use", "error": "Conflict" }`.
+  Invalid input (`400`) also gets an `errors` field with the problems per
+  field, so a form can show each message next to the right input. A failed
+  login (`401`) always says "Invalid email or password". (2026-10-08)
+- Neither register nor login may reveal whether an email has an account,
+  because that helps targeted phishing. Login does this from milestone 3: the
+  same answer and the same response time whether the email is unknown or
+  the password is wrong. Register gets there through email verification,
+  which always answers "check your email". That needs a way to send email,
+  which the subject only requires for the GDPR module, so when we build it
+  depends on the module choice (Q7). Until then register answers
+  `409 "Email already in use"`, and this is temporary. (2026-10-08)
+- Emails are trimmed and lowercased, and stored that way. Mail providers
+  treat `Sam@Example.com` and `sam@example.com` as the same mailbox, so
+  without this one person could end up with several accounts, or fail to
+  log in because of a capital letter. We do this in the `Email` schema in
+  `shared/auth.ts`, so frontend and backend normalize the same way, and the
+  trim happens before the format check. We do not apply provider tricks like
+  removing dots or `+tag` for Gmail, since those break other providers.
+  (2026-10-08)
+- Register answers `201 Created` and login answers `200 OK`, both with the
+  safe `User` from the contract. In milestone 3 the backend does not
+  remember a login yet, that comes with sessions in milestone 4. If sessions
+  use cookies, the body can stay `User`, so the frontend does not have to
+  change. (2026-10-08)
 
 ## Follow-ups
 
 Smaller things to handle in a specific milestone.
 
-- **Milestone 3:** limit display names to a small set of characters (for
-  example `a-z`, `0-9`, `_`). Unicode has look-alike letters, such as a
-  Cyrillic `а` that looks exactly like a Latin `a`, which would get around
-  the case rule.
-- **Milestone 3:** decide what error responses look like. A failed login must
-  give the same answer whatever went wrong, so nobody can find out which
-  emails have an account.
+- **Milestone 3:** limit display names to `A-Z`, `a-z`, `0-9` and `_`.
+  Uppercase stays allowed because names are shown as typed. Unicode has
+  look-alike letters, such as a Cyrillic `а` that looks exactly like a Latin
+  `a`, which would get around the case rule.
+- **Milestone 3:** when a login uses an unknown email, still run scrypt once
+  on a dummy value, so it takes as long as a wrong password. Otherwise the
+  response time gives away which emails exist.
+- **Milestone 3:** make the `Email` schema trim and lowercase.
 - **Milestone 3:** add the password maximum of 64 and the list of common
-  passwords to `RegisterRequest`. The maximum also stays under bcrypt's limit,
-  which ignores everything after 72 bytes.
-- **Milestone 3:** add a check that fails when a backend class has a
-  constructor parameter without `@Inject`. It compares the number of
-  constructor parameters with the number of `@Inject` labels, for every
-  controller and provider our own modules list, so new features are covered
-  without writing a test for each. Run it as a test or at startup, decided
-  together with the backend test runner.
+  passwords to `RegisterRequest`. The maximum also stops someone from
+  sending a huge password to make hashing slow on purpose. Use about the
+  1000 most common passwords: the list is in `shared/`, so it ends up in the
+  browser once the frontend validates forms, and a much longer list would
+  make every page load heavier.
+- **Milestone 3:** compare hashes with `crypto.timingSafeEqual`, not `==`,
+  so the time a comparison takes does not leak how much of a hash matched.
+- **Tell DevOps:** the backend Docker image uses Node 22, while mise gives
+  everyone Node 26 locally. Code that works locally can fail in Docker.
+- **Team:** there is no CI yet, so checks and tests only run when someone
+  runs them by hand. Once there is CI, starting the backend is enough to run
+  the `@Inject` check.
+- **Before milestone 3, separate PR:** add a check at backend startup that
+  refuses to start when a backend class has a constructor parameter without
+  `@Inject`. It compares the number of constructor parameters with the
+  number of `@Inject` labels, for every controller and provider our own
+  modules list, so new features are covered without writing a test for
+  each. It is its own PR because it protects all backend code, not just
+  auth.
 - **Milestone 3:** tell Mike about the `@Inject` issue and the runner options
   above, so the team knows the trap and can decide on a switch.
 
@@ -157,9 +218,6 @@ Smaller things to handle in a specific milestone.
 Check this list before starting a milestone. When a question is answered,
 move it to Decisions (or an ADR) with the date.
 
-- **Q2. Emails.** Do we lowercase and trim emails before storing them? Do we
-  verify that an email is real? This also matters for linking OAuth accounts
-  later.
 - **Q4. Sessions.** Server-side sessions with cookies, or JWTs? Needs an ADR.
 - **Q6. ORM.** Prisma or Drizzle? Decided together with DevOps in ADR 0004.
 - **Q7. Modules.** Are we doing OAuth and/or 2FA?
