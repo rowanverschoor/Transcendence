@@ -84,10 +84,22 @@ export type FoodId = z.infer<typeof FoodId>;
 
 // --- Client -> server --------------------------------------------------------
 
+/** Display-level info for one player; positions live on their cells. */
+export const PlayerMeta = z.compile(
+  z.object({
+    name: z.string().min(1).max(32).optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+  }),
+);
+
 export const JoinRequest = z.compile(
   z.object({
     ...Typed("join").shape,
     roomId: RoomId.optional(),
+    meta: PlayerMeta.optional(),
   }),
 );
 
@@ -115,19 +127,9 @@ export const makePlayerInput = (cfg: ArenaConfig) =>
 
 export const makeClientMessage = (cfg: ArenaConfig) =>
   z.compile(z.discriminatedUnion("type", [makePlayerInput(cfg), JoinRequest]));
+export type ClientMessageSchema = ReturnType<typeof makeClientMessage>;
 
 // --- Game state (shared between snapshot and deltas) --------------------------
-
-/** Display-level info for one player; positions live on their cells. */
-export const PlayerMeta = z.compile(
-  z.object({
-    name: z.string().min(1).max(32).optional(),
-    color: z
-      .string()
-      .regex(/^#[0-9a-fA-F]{6}$/)
-      .optional(),
-  }),
-);
 
 /** One blob: a player owns one cell before splitting, N after. */
 export const CellState = z.compile(
