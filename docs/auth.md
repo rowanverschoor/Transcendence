@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-07.
+Owner: a0f. Last updated: 2026-10-08.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -24,25 +24,28 @@ Where we want to end up:
 3. **Every request after that:** the browser sends the session along, so the
    backend knows who you are.
 
-Right now only a frontend placeholder exists: login and register pages, and a
-fake `AuthService` that accepts any email with the password `password`.
-Nothing talks to the backend yet.
+Right now there is a frontend placeholder and a shared contract. The
+placeholder is login and register pages, and a fake `AuthService` that accepts
+any email with the password `password`. The contract in `shared/auth.ts`
+describes what register and login send and receive, and the frontend already
+uses its `User` type. Nothing talks to the backend yet.
 
 ## Roadmap
 
 Each milestone is one PR. The individual changes inside a milestone are
 planned when we start it, not before.
 
-### 1. Frontend stub (in progress)
+### 1. Frontend stub (done)
 - **Goal:** login and register pages using a fake `AuthService`, logging in by email.
 - **Done when:** you can log in and out in the browser and the page shows the
   current user. No backend involved.
 - **Watch out:** nothing open.
 
-### 2. Shared auth contract
+### 2. Shared auth contract (in review)
 - **Goal:** request and response types for register and login live in
   `shared/`, imported by both frontend and backend.
-- **Done when:** both sides compile against the same types.
+- **Done when:** the contract is in `shared/` and the frontend compiles
+  against it. The backend starts using it in milestone 3.
 - **Watch out:** nothing open. User IDs are decided, see Decisions.
 
 ### 3. Backend auth module
@@ -52,7 +55,7 @@ planned when we start it, not before.
   and invalid input are rejected. Tests pass.
 - **Watch out:** keep the password hash out of the main user record, and keep
   "check the password" separate from "start a session". Both make OAuth
-  easier to add later. Email rules (Q2), password rules (Q5).
+  easier to add later. Email rules (Q2).
 
 ### 4. Sessions and protected routes
 - **Goal:** the backend remembers who is logged in and refuses protected
@@ -97,6 +100,21 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   "a UUID", so the version (v4 now, maybe v7 later) can change without
   touching `shared/`. Unguessable IDs are not a security measure, permission
   checks still apply. (2026-10-07)
+- The shared contract is a set of zod schemas in `shared/auth.ts`, the same
+  way `shared/protocol.ts` does it for the game. One definition gives both
+  the TypeScript type and the runtime check, for frontend and backend. This
+  means milestone 3 validates input with zod, not with NestJS's default
+  class-validator. (2026-10-07)
+- Display names are 3 to 32 characters. (2026-10-07)
+- Register requires a password of at least 8 characters. Login only requires
+  a non-empty password. The length rule applies when a password is chosen, so
+  if the rules get stricter later, older passwords still work. (2026-10-07)
+- Password rules follow NIST SP 800-63B, loosened on length: at least 8 and
+  at most 64 characters, no rules about uppercase, digits or symbols, and the
+  most common passwords are refused. Rules like "one uppercase, one symbol"
+  mostly lead to `Password1!` and block long passphrases. NIST asks for 15
+  characters when the password is the only factor, we chose 8 because the app
+  holds no sensitive data. (2026-10-08)
 
 ## Follow-ups
 
@@ -106,6 +124,12 @@ Smaller things to handle in a specific milestone.
   example `a-z`, `0-9`, `_`). Unicode has look-alike letters, such as a
   Cyrillic `а` that looks exactly like a Latin `a`, which would get around
   the case rule.
+- **Milestone 3:** decide what error responses look like. A failed login must
+  give the same answer whatever went wrong, so nobody can find out which
+  emails have an account.
+- **Milestone 3:** add the password maximum of 64 and the list of common
+  passwords to `RegisterRequest`. The maximum also stays under bcrypt's limit,
+  which ignores everything after 72 bytes.
 
 ## Open questions
 
@@ -116,8 +140,6 @@ move it to Decisions (or an ADR) with the date.
   verify that an email is real? This also matters for linking OAuth accounts
   later.
 - **Q4. Sessions.** Server-side sessions with cookies, or JWTs? Needs an ADR.
-- **Q5. Password rules.** Minimum length (the register page says 8 for now),
-  anything else?
 - **Q6. ORM.** Prisma or Drizzle? Decided together with DevOps in ADR 0004.
 - **Q7. Modules.** Are we doing OAuth and/or 2FA?
 - **Q8. Milestone 7.** Who owns authenticated WebSockets?
