@@ -114,6 +114,20 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   mostly lead to `Password1!` and block long passphrases. NIST asks for 15
   characters when the password is the only factor, we chose 8 because the app
   holds no sensitive data. (2026-10-08)
+- In the backend, every constructor parameter gets `@Inject(...)`, for
+  example `constructor(@Inject(AuthService) private auth: AuthService)`.
+  NestJS normally works out what to pass in from the parameter types, which
+  the TypeScript compiler saves as extra data (`emitDecoratorMetadata`). Our
+  backend runs with `tsx`, which strips types without saving that data, so
+  without `@Inject` the parameter is silently `undefined`. There is no error
+  at startup, only a crash when a request uses it. An automatic check finds
+  any missing `@Inject` (see Follow-ups), so this does not depend on people
+  remembering it. We looked at switching runners instead: the NestJS CLI with
+  SWC needs a build step for the backend and `shared/` and a Dockerfile
+  change, and `@swc-node/register` is smaller but adds a native dependency
+  to production and needs testing. That is a choice for whoever owns the
+  backend tooling, and code with `@Inject` keeps working after a switch.
+  (2026-10-08)
 
 ## Follow-ups
 
@@ -129,6 +143,14 @@ Smaller things to handle in a specific milestone.
 - **Milestone 3:** add the password maximum of 64 and the list of common
   passwords to `RegisterRequest`. The maximum also stays under bcrypt's limit,
   which ignores everything after 72 bytes.
+- **Milestone 3:** add a check that fails when a backend class has a
+  constructor parameter without `@Inject`. It compares the number of
+  constructor parameters with the number of `@Inject` labels, for every
+  controller and provider our own modules list, so new features are covered
+  without writing a test for each. Run it as a test or at startup, decided
+  together with the backend test runner.
+- **Milestone 3:** tell Mike about the `@Inject` issue and the runner options
+  above, so the team knows the trap and can decide on a switch.
 
 ## Open questions
 
