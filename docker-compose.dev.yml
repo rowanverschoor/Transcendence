@@ -1,0 +1,31 @@
+# Development stack: bind mounts + live reloading (tsx watch / ng serve).
+# Usage: docker compose -f docker-compose.dev.yml up --build
+name: transcendence-dev
+
+services:
+  backend:
+    image: transcendence-backend:dev
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    # Same image as prod; tsx (a runtime dep) provides `npm run watch`.
+    command: npm run watch
+    volumes:
+      - ./shared:/app/shared:z
+      - ./backend:/app/backend:z
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: "development"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    volumes:
+      - ./shared:/app/shared:z
+      - ./frontend:/app/frontend:z
+    ports:
+      - "4200:4200"
+    depends_on:
+      - backend

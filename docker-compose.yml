@@ -1,5 +1,7 @@
-# Both images are built from the repo root because of workspace deps (package-lock.json, shared/).
-# Usage: docker compose up --build
+# Production stack: baked images, no bind mounts, no file watching.
+# Usage: docker compose -f docker-compose.yml up --build -d
+name: transcendence-prod
+
 services:
   backend:
     build:
@@ -7,6 +9,7 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "8080:8080"
+    restart: unless-stopped
 
   frontend:
     build:
@@ -14,12 +17,16 @@ services:
       dockerfile: frontend/Dockerfile
     ports:
       - "8081:80" # nginx serves the Angular static build
+    restart: unless-stopped
+    depends_on:
+      - backend
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     command: tunnel --no-autoupdate run
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    restart: unless-stopped
     depends_on:
       - backend
       - frontend
