@@ -10,6 +10,14 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.node },
     },
+    rules: {
+      // Unused required parameters (e.g. () => forward refs) keep their
+      // signature; mark them with a leading underscore instead.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
   },
   {
     ignores: ['**/dist/', '**/node_modules/', '**/.angular/'],
