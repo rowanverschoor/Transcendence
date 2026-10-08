@@ -18,7 +18,7 @@ import {
   RoomId,
 } from "@transcendence/shared";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
-import { GameRoom, Rooms } from "./gameroom.js";
+import { RoomRegistry } from "./gameroom.js";
 import { GAME_CONFIG, type GameConfig } from "./game.config.js";
 
 // Attaches to the HTTP server. CORS reflects any origin so `ng serve`
@@ -30,9 +30,13 @@ export class GameGateway
   private readonly messagePipe: ZodValidationPipe<ClientMessageSchema>;
   readonly config: GameConfig;
 
-  // tsx/esbuild does not emit decorator metadata, so the injection token is
-  // stated explicitly instead of relying on the parameter type.
-  constructor(@Inject(GAME_CONFIG) config: GameConfig) {
+  // The @swc-node runner emits `design:paramtypes`, so class-typed parameters
+  // (RoomRegistry) resolve by type. GameConfig stays on a string token: it is
+  // an interface, and interface paramtypes reflect as `Object`.
+  constructor(
+    @Inject(GAME_CONFIG) config: GameConfig,
+    private readonly registry: RoomRegistry,
+  ) {
     this.messagePipe = new ZodValidationPipe(
       makeClientMessage({
         width: config.width,
@@ -44,7 +48,7 @@ export class GameGateway
 
   afterInit(server: Server) {
     const id: RoomId = "0123456789";
-    Rooms[id] = new GameRoom(this.config, id, server);
+    this.registry.create(id, server);
   }
 
   handleConnection(client: Socket): void {
@@ -52,7 +56,7 @@ export class GameGateway
   }
 
   handleDisconnect(client: Socket): void {
-    for (const id in Rooms) Rooms[id].removeClient(client.id);
+    this.registry.removeClient(client.id);
   }
 
   @SubscribeMessage("message")
@@ -65,14 +69,12 @@ export class GameGateway
     const msg: ClientMessage = this.messagePipe.transform(payload, {
       type: "body",
     } satisfies ArgumentMetadata);
-    let response: ServerMessage = { type: "announcement", text: "Input received" };
+    const response: ServerMessage = { type: "announcement", text: "Input received" };
     switch (msg.type) {
       case "join": {
         // Idempotent repeat join: the socket is already in a room, resend its
         // snapshot instead of adding a second player.
-        const existing = Object.values(Rooms).find(
-          (room) => room.clientIds[client.id] !== undefined,
-        );
+        const existing = this.registry.findForSocket(client.id);
         if (existing !== undefined) {
           const you = existing.clientIds[client.id];
           if (you !== undefined) {
@@ -80,7 +82,7 @@ export class GameGateway
           }
           return;
         }
-        const room = msg.roomId ? Rooms[msg.roomId] : Object.values(Rooms)[0];
+        const room = msg.roomId ? this.registry.get(msg.roomId) : this.registry.first();
         if (room === undefined) {
           client.emit(
             "message",
