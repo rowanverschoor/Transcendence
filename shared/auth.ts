@@ -7,7 +7,7 @@ import { z } from "zod";
 // Email and password rules tighten in auth milestone 3.
 // ---------------------------------------------------------------------------
 
-export const UserId = z.uuid();
+export const UserId = z.uuidv4();
 
 const Email = z.email();
 const DisplayName = z.string().min(3).max(32);
