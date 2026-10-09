@@ -86,10 +86,23 @@ export class PixiApp {
 	}
 
 	public update(gu: GameUpdate): void {
-		// TODO MAKE THIS WORK IT KEEPS THROWING ERRORS IDK WHY
-		//this.food = gu.food;
-		//this.cells = gu.cells;
-		//this.players = gu.players;
+		for (const [id, cell] of Object.entries(gu.cells)) {
+			if (cell == null) {
+				delete this.cells[id];
+				this.graphics[id]?.destroy();
+				delete this.graphics[id];
+			} else {
+				this.cells[id] = cell;
+			}
+		}
+		for (const [id, f] of Object.entries(gu.food)) {
+			if (f === null) delete this.food[id];
+			else this.food[id] = f;
+		}
+		for (const [id, p] of Object.entries(gu.players)) {
+			if (p === null) delete this.players[id];
+			else this.players[id] = p;
+		}
 	}
 
 	destroy(): void {
