@@ -4,7 +4,8 @@
   "main": "./protocol.ts",
   "exports": {
     ".": "./protocol.ts",
-    "./protocol": "./protocol.ts"
+    "./protocol": "./protocol.ts",
+    "./auth": "./auth.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"
