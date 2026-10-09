@@ -20,18 +20,23 @@ const makeRoom = (capacity = 3): GameRoom =>
     capacity,
   );
 
-const socketOf = (id: string) => ({ id, emit: () => undefined }) as unknown as Socket;
+const socketOf = (id: string) =>
+  ({ id, emit: () => undefined }) as unknown as Socket;
 
 const meta = (over: Partial<PlayerMeta> = {}): PlayerMeta => ({
   name: over.name,
-  color: over.color,
+  // ADR 0006: color is required on join, so specs always carry one.
+  color: over.color ?? "#000000",
 });
 
 describe("GameRoom.addPlayer", () => {
   it("registers the player under a 5-character id and populates both maps", () => {
     const room = makeRoom();
     const socket = socketOf("socket-1");
-    const id = room.addPlayer(socket, meta({ name: "Alice", color: "#123456" }));
+    const id = room.addPlayer(
+      socket,
+      meta({ name: "Alice", color: "#123456" }),
+    );
     expect(id).toBeTypeOf("string");
     expect(id).toHaveLength(5);
     const pid = id as string;
@@ -67,53 +72,23 @@ describe("GameRoom.removeClient", () => {
   });
 });
 
-describe("GameRoom.resolveMeta", () => {
-  it("honors a complete client proposal even if it duplicates an in-room color", () => {
-    const room = makeRoom();
-    room.addPlayer(socketOf("a"), meta({ name: "A", color: "#e6194b" }));
-    expect(room.resolveMeta({ name: "A", color: "#e6194b" })).toEqual({
-      name: "A",
-      color: "#e6194b",
-    });
-  });
-
-  it("fills a missing name with a Blob-* name and a missing color with an unused palette color", () => {
-    const room = makeRoom();
-    room.addPlayer(socketOf("a"), meta({ name: "A", color: "#e6194b" }));
-    const resolved = room.resolveMeta(meta());
-    const resolvedColor = resolved.color ?? "";
-    expect(resolved.name).toMatch(/^Blob-/);
-    expect(/^#[0-9a-fA-F]{6}$/.test(resolvedColor)).toBe(true);
-    expect(resolvedColor).not.toBe("#e6194b");
-    expect(resolvedColor).toBeTypeOf("string");
-  });
-
-  it("falls back to a random hex color only when the palette is exhausted", () => {
-    // Palette holds 10 colors; occupy all 10 slots with distinct palette dups.
-    const room = makeRoom(10);
-    const paletteBefore = ["#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#008080"];
-    paletteBefore.forEach((color, i) =>
-      room.addPlayer(socketOf(`socket-${i}`), meta({ color })),
-    );
-    const colors = Object.values(room.players).map((m) => m.color);
-    expect(paletteBefore.every((c) => colors.includes(c))).toBe(true);
-    const resolved = room.resolveMeta(meta());
-    expect(/^#[0-9a-fA-F]{6}$/.test(resolved.color ?? "")).toBe(true);
-    expect(colors.includes(resolved.color ?? "")).toBe(false);
-  });
-});
-
 describe("GameRoom.snapshotFor", () => {
   it("carries you, arena, tick 0, and the live records", () => {
     const room = makeRoom();
-    const id = room.addPlayer(socketOf("s"), meta({ name: "Blob-a", color: "#000000" }));
+    const id = room.addPlayer(
+      socketOf("s"),
+      meta({ name: "Blob-a", color: "#000000" }),
+    );
     const snap = room.snapshotFor(id as string);
     expect(snap.type).toBe("snapshot");
     expect(snap.roomId).toBe("0123456789");
     expect(snap.you).toBe(id);
     expect(snap.arena).toEqual({ width: 800, height: 800 });
     expect(snap.tick).toBe(0);
-    expect(snap.players[id as string]).toEqual({ name: "Blob-a", color: "#000000" });
+    expect(snap.players[id as string]).toEqual({
+      name: "Blob-a",
+      color: "#000000",
+    });
     expect(Object.keys(snap.food)).toHaveLength(2);
     expect(snap.cells).toEqual({});
   });

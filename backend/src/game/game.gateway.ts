@@ -20,6 +20,7 @@ import {
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
 import { RoomRegistry } from "./gameroom.js";
 import { GAME_CONFIG, type GameConfig } from "./game.config.js";
+import { nanoid } from "nanoid";
 
 // Attaches to the HTTP server. CORS reflects any origin so `ng serve`
 // (different port) can complete the socket.io handshake in development.
@@ -47,7 +48,7 @@ export class GameGateway
   }
 
   afterInit(server: Server) {
-    const id: RoomId = "0123456789";
+    const id: RoomId = nanoid(10);
     this.registry.create(id, server);
   }
 
@@ -69,7 +70,10 @@ export class GameGateway
     const msg: ClientMessage = this.messagePipe.transform(payload, {
       type: "body",
     } satisfies ArgumentMetadata);
-    const response: ServerMessage = { type: "announcement", text: "Input received" };
+    const response: ServerMessage = {
+      type: "announcement",
+      text: "Input received",
+    };
     switch (msg.type) {
       case "join": {
         // Idempotent repeat join: the socket is already in a room, resend its
@@ -82,7 +86,9 @@ export class GameGateway
           }
           return;
         }
-        const room = msg.roomId ? this.registry.get(msg.roomId) : this.registry.first();
+        const room = msg.roomId
+          ? this.registry.get(msg.roomId)
+          : this.registry.first();
         if (room === undefined) {
           client.emit(
             "message",
@@ -93,7 +99,7 @@ export class GameGateway
           );
           return;
         }
-        const id = room.addPlayer(client, room.resolveMeta(msg.meta));
+        const id = room.addPlayer(client, msg.meta);
         if (id === null) {
           client.emit(
             "message",
