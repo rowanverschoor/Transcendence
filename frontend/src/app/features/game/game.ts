@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, AfterViewInit, viewChild } from '@angular/core';
-import { GameSnapshot, JoinRequest, ServerMessage } from '@transcendence/shared';
+import { GameSnapshot, GameUpdate, JoinRequest, ServerMessage } from '@transcendence/shared';
 import { io, Socket } from 'socket.io-client';
 import { PixiApp } from './render/pixi';
 
@@ -63,10 +63,11 @@ export class Game implements AfterViewInit, OnDestroy {
 						console.log(msg);
 						break;
 					case "update":
-						// do update stuff
+						this.app?.update(GameUpdate.parse(sm));
 						break;
 					case "snapshot":
 						this.snap = GameSnapshot.parse(sm);
+						this.app?.snapshot(this.snap);
 						break;
 					default:
 						break;

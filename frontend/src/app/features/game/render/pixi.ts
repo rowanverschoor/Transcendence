@@ -1,10 +1,17 @@
 import { Application, Point, Rectangle, Graphics } from 'pixi.js';
-import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food } from "@transcendence/shared/protocol";
+import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot } from "@transcendence/shared/protocol";
 import 'pixi.js/math-extras';
 
 const MAX_RADIUS = 200;
 
+function cssColor(name: string): string {
+	return getComputedStyle(document.documentElement)
+		.getPropertyValue(`--${name}`)
+		.trim();
+}
+
 export class PixiApp {
+	private destroyed = false;
 	readonly app = new Application();
 	private cam = new Rectangle();
 	private cells: Record<CellId, CellState> = {
@@ -31,7 +38,7 @@ export class PixiApp {
 	static async create(host: HTMLElement): Promise<PixiApp> {
 		const engine = new PixiApp();
 		await engine.app.init({
-			background: '#1099bb',
+			background: cssColor('game'),
 			resizeTo: host,
 		});
 		host.appendChild(engine.app.canvas);
@@ -42,9 +49,9 @@ export class PixiApp {
 	private constructor() {}
 
 	private startTicking(): void {
-		// this.graph = new Graphics().circle(0, 0, this.cells[0].radius).fill('#e16c0d');
 		const { app } = this;
 		app.ticker.add((time) => {
+			if (this.destroyed) return;
 			const mousePos = app.renderer.events.pointer.global;
 			for (const [id, cell] of Object.entries(this.cells))
 			{
@@ -86,6 +93,7 @@ export class PixiApp {
 	}
 
 	public update(gu: GameUpdate): void {
+		if (this.destroyed) return;
 		for (const [id, cell] of Object.entries(gu.cells)) {
 			if (cell == null) {
 				delete this.cells[id];
@@ -105,7 +113,22 @@ export class PixiApp {
 		}
 	}
 
+	public snapshot(snap: GameSnapshot): void {
+		if (this.destroyed) return;
+		this.id = snap.you;
+		this.cells = snap.cells;
+		this.players = snap.players;
+		this.food = snap.food;
+	}
+
 	destroy(): void {
+		if (this.destroyed) return ;
+		this.destroyed = true;
+		this.app.destroy(true, { children: true });
+		this.graphics = {};
+		this.cells = {};
+		this.food = {};
+		this.players = {};
 	}
 }
 
