@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-08.
+Owner: a0f. Last updated: 2026-10-09.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -74,7 +74,7 @@ planned when we start it, not before.
 ### 6. Postgres swap
 - **Goal:** replace in-memory storage with Postgres.
 - **Done when:** users survive a backend restart.
-- **Watch out:** waits on DevOps (not before 2026-10-14) and on ADR 0004
+- **Watch out:** waits on DevOps (not before 2026-10-14) and on ADR 0009
   (Postgres and ORM).
 
 ### 7. Authenticated WebSockets
@@ -91,7 +91,8 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 - Passwords are only stored as salted hashes. (subject requirement)
 - Until Postgres is running, users live in memory behind a `UsersRepository`
   interface, so switching storage only touches one place. (2026-10-07)
-- The database will be PostgreSQL. Planned, to be made official in ADR 0004.
+- The database will be PostgreSQL. Planned, to be made official in
+  ADR 0009 (Postgres + ORM; 0004 is the backend-framework record).
 - Users have a display name that other players see, separate from the email
   they log in with. Display names are unique ignoring case, so `Sam` and `sam`
   can't both exist and nobody can pose as someone else by changing letter
@@ -138,7 +139,11 @@ move it to Decisions (or an ADR) with the date.
 - **Q2. Emails.** Do we lowercase and trim emails before storing them? Do we
   verify that an email is real? This also matters for linking OAuth accounts
   later.
-- **Q4. Sessions.** Server-side sessions with cookies, or JWTs? Needs an ADR.
-- **Q6. ORM.** Prisma or Drizzle? Decided together with DevOps in ADR 0004.
+- **Q4. Sessions.** Server-side sessions with cookies, or JWTs? Being
+  decided in ADR 0008 (session and tournament model). Note: the
+  backend already runs cookie sessions in practice — `main.ts` wires
+  `express-session` from validated env (`SESSION_SECRET`), so the
+  open part is making that choice official, not choosing against it.
+- **Q6. ORM.** Prisma or Drizzle? Decided together with DevOps in ADR 0009.
 - **Q7. Modules.** Are we doing OAuth and/or 2FA?
 - **Q8. Milestone 7.** Who owns authenticated WebSockets?
