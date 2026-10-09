@@ -1,4 +1,4 @@
-import { Application, Point, Rectangle, Graphics } from 'pixi.js';
+import { Application, Point, Rectangle, Graphics, Container } from 'pixi.js';
 import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot } from "@transcendence/shared/protocol";
 import 'pixi.js/math-extras';
 
@@ -19,18 +19,41 @@ export class PixiApp {
 		"2": { owner: "2", pos: { x: 400, y: 300 }, radius: 40 },
 		"3": { owner: "1", pos: { x: 800, y: 800 }, radius: 50 },
 	};
-	private players: Record<PlayerId, PlayerMeta> = {};
-	private food: Record<FoodId, Food> = {};
-	private graphics: Record<string, Graphics> = {};
+	private players: Record<PlayerId, PlayerMeta> = {
+		"1": {name: "You", color: '#f08409'},
+		"2": {name: "NotYou", color: '#0ee72b'},
+	};
+	private food: Record<FoodId, Food> = {
+		"1": {pos: {x: 500, y: 500}, radius: 10},
+		"2": {pos: {x: 900, y: 600}, radius: 10},
+		"3": {pos: {x: 1000, y: 200}, radius: 10},
+		"4": {pos: {x: 600, y: 200}, radius: 10},
+		"5": {pos: {x: 300, y: 700}, radius: 10},
+	};
+	private cellGraphics: Record<CellId, Graphics> = {};
+	private foodGraphics: Record<FoodId, Graphics> = {};
 	private id: PlayerId = "1";
 
+	private foodLayer = new Container();
+	private cellLayer = new Container();
 
-	private getGraphic(id: CellId): Graphics {
-		let g = this.graphics[id];
+
+	private getCellGraphic(id: CellId): Graphics {
+		let g = this.cellGraphics[id];
 		if (!g) {
 			g = new Graphics().circle(0, 0, 1).fill('#ffffff');
-			this.app.stage.addChild(g);
-			this.graphics[id] = g;
+			this.cellLayer.addChild(g);
+			this.cellGraphics[id] = g;
+		}
+		return g;
+	}
+
+	private getFoodGraphic(id: FoodId): Graphics {
+		let g = this.foodGraphics[id];
+		if (!g) {
+			g = new Graphics().circle(0, 0, 1).fill('#ffffff');
+			this.foodLayer.addChild(g);
+			this.foodGraphics[id] = g;
 		}
 		return g;
 	}
@@ -42,6 +65,7 @@ export class PixiApp {
 			resizeTo: host,
 		});
 		host.appendChild(engine.app.canvas);
+		engine.app.stage.addChild(engine.foodLayer, engine.cellLayer);
 		engine.startTicking();
 		return engine;
 	}
@@ -66,9 +90,9 @@ export class PixiApp {
 					for (const [foodId, food] of Object.entries(this.food)) {
 						let dist = cellWorldPos.subtract(CoordToPoint(food.pos)).magnitude();
 						if (dist < cell.radius + food.radius) {
+							// move this logic to backend?
 							food.pos = <Coord>{x: -100, y:  -100};
 							cell.radius = Math.min(MAX_RADIUS, cell.radius + 1);
-							// TODO add food respawn logic by sending webpacket to server at the end?
 						}
 					}
 					for (const [otherId, otherCell] of Object.entries(this.cells)) {
@@ -83,11 +107,17 @@ export class PixiApp {
 					cell.pos = PointToCoord(cellWorldPos);
 				}
 
-				const graph = this.getGraphic(id);
+				const graph = this.getCellGraphic(id);
 				graph.position.set(cell.pos.x, cell.pos.y);
 				graph.scale.set(cell.radius);
-				// TODO MAKE COLORS NOT HARDCODED EXTRACT FROM OWNER / PLAYERMETA
-				graph.tint = cell.owner == "1" ? '#f08409' : "#0ee72b";
+				const color = this.players[cell.owner]?.color;
+				graph.tint = color ?? '#ffffff';
+			}
+			for (const [id, f] of Object.entries(this.food))
+			{
+				const graph = this.getFoodGraphic(id);
+				graph.position.set(f.pos.x, f.pos.y);
+				graph.scale.set(f.radius);
 			}
 		});
 	}
@@ -97,15 +127,20 @@ export class PixiApp {
 		for (const [id, cell] of Object.entries(gu.cells)) {
 			if (cell == null) {
 				delete this.cells[id];
-				this.graphics[id]?.destroy();
-				delete this.graphics[id];
+				this.cellGraphics[id]?.destroy();
+				delete this.cellGraphics[id];
 			} else {
 				this.cells[id] = cell;
 			}
 		}
 		for (const [id, f] of Object.entries(gu.food)) {
-			if (f === null) delete this.food[id];
-			else this.food[id] = f;
+			if (f === null) {
+				delete this.food[id];
+				this.foodGraphics[id]?.destroy();
+				delete this.foodGraphics[id];
+			} else {
+				this.food[id] = f;
+			}
 		}
 		for (const [id, p] of Object.entries(gu.players)) {
 			if (p === null) delete this.players[id];
@@ -125,7 +160,8 @@ export class PixiApp {
 		if (this.destroyed) return ;
 		this.destroyed = true;
 		this.app.destroy(true, { children: true });
-		this.graphics = {};
+		this.cellGraphics = {};
+		this.foodGraphics = {};
 		this.cells = {};
 		this.food = {};
 		this.players = {};
