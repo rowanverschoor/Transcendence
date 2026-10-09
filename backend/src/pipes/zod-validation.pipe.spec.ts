@@ -33,8 +33,11 @@ describe("ZodValidationPipe", () => {
   });
 
   it("validates an already-parsed (non-string) payload", () => {
-    expect(pipe.transform({ type: "join" }, {} as never)).toEqual({
+    expect(
+      pipe.transform({ type: "join", meta: { color: "#123456" } }, {} as never),
+    ).toEqual({
       type: "join",
+      meta: { color: "#123456" },
     });
   });
 
@@ -48,10 +51,7 @@ describe("ZodValidationPipe", () => {
   it("rejects an unknown message type", () => {
     expectWsError(
       () =>
-        pipe.transform(
-          JSON.stringify({ type: "nope", seq: 2 }),
-          {} as never,
-        ),
+        pipe.transform(JSON.stringify({ type: "nope", seq: 2 }), {} as never),
       "type: Invalid discriminator value. Expected 'input' | 'join'",
     );
   });

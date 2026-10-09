@@ -59,24 +59,6 @@ export class GameRoom {
     return id;
   };
 
-  private static readonly PALETTE = [
-    "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231",
-    "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#008080",
-  ] as const;
-
-  readonly resolveMeta = (proposed?: PlayerMeta): PlayerMeta => {
-    const colors = Object.values(this.players).map((m) => m.color);
-    const hex = () =>
-      "#" +
-      [0, 0, 0]
-        .map(() => RandomFromTo(0, 255).toString(16).padStart(2, "0"))
-        .join("");
-    const color =
-      proposed?.color ?? GameRoom.PALETTE.find((c) => !colors.includes(c)) ?? hex();
-    const name = proposed?.name ?? `Blob-${nanoid(6)}`;
-    return { name, color };
-  };
-
   readonly removeClient = (socketId: Socket["id"]): void => {
     const id = this.clientIds[socketId];
     if (id === undefined) return;
@@ -97,11 +79,6 @@ export class GameRoom {
   });
 }
 
-/**
- * Nest-owned registry over live rooms. Replaces what used to be the module
- * global `Rooms` record: rooms are runtime-created per game, so they cannot be
- * providers themselves — the registry is, and it owns the lifecycle.
- */
 @Injectable()
 export class RoomRegistry {
   private readonly rooms = new Map<RoomId, GameRoom>();

@@ -84,14 +84,18 @@ export type FoodId = z.infer<typeof FoodId>;
 
 // --- Client -> server --------------------------------------------------------
 
-/** Display-level info for one player; positions live on their cells. */
+/**
+ * Display-level info for one player; positions live on their cells.
+ * Both fields are client-supplied (ADR 0006): the backend stores them
+ * verbatim — no palette, no conflict resolution, no default names.
+ * `name` is optional; unnamed rivals are a renderer concern. `color` is
+ * required by the join rule below, so a snapshot player always carries one
+ * and the canvas never invents a fill.
+ */
 export const PlayerMeta = z.compile(
   z.object({
     name: z.string().min(1).max(32).optional(),
-    color: z
-      .string()
-      .regex(/^#[0-9a-fA-F]{6}$/)
-      .optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   }),
 );
 
@@ -99,7 +103,9 @@ export const JoinRequest = z.compile(
   z.object({
     ...Typed("join").shape,
     roomId: RoomId.optional(),
-    meta: PlayerMeta.optional(),
+    // ADR 0006: every client declares its color at join time; a join without
+    // meta is rejected by the validation pipe, not defaulted server-side.
+    meta: PlayerMeta,
   }),
 );
 
