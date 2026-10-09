@@ -30,8 +30,12 @@ run = "mise-tasks/compose.sh down"
 
 [tasks.check]
 description = "Type-check without emitting"
-run = "npm run check"
+run = "npm run check -w backend; npm run check -w frontend"
+
+[tasks.test]
+description = "Run test for entire repo"
+run = "npm run test -w backend; npm run test -w frontend"
 
 [tasks.setup]
 description = "Automatically pick mise data dir (Codam goinfre vs home)"
-run = "bash setup-mise.sh"
+run = "bash mise-tasks/setup-mise.sh"
