@@ -8,15 +8,25 @@ reverse. Read these before changing anything they touch.
 | ADR | Title | Status |
 |---|---|---|
 | [0001](./0001-use-typescript-for-frontend-and-backend.md) | Use TypeScript for the frontend and backend | Proposed |
+| [0002](./0002-use-server-authoritative-websocket-sync.md) | Use server-authoritative synchronization over WebSocket | Proposed |
+| [0004](./0004-use-nestjs-for-the-backend.md) | Use NestJS for the backend | Accepted (retroactive) |
+| [0005](./0005-choose-socket-io-for-websockets.md) | Choose Socket.IO for the WebSocket layer | Accepted (retroactive) |
+| [0006](./0006-take-player-metas-from-the-join-request.md) | Take player colors and names from the join request, verbatim | Proposed |
+
+0003 was withdrawn before acceptance: the product pivoted from a
+WarioWare-style microgame collection to a single agar.io clone, so
+the pluggable-microgame architecture it described has no remaining
+subject. The number is retired; the withdrawn record itself is
+[0003](./0003-pluggable-microgame-collection-architecture.md) for
+the reasoning trail.
 
 ## Planned
 
 Not yet written; each is gated on an input that doesn't exist yet:
 
-- **0002 — Use server-authoritative synchronization over WebSocket
-- **0003 — use-nestjs-for-the-backend** (after the stack spike; options: NestJS / Fastify / Express)
-- **0004 — use-postgresql-with-an-orm** (after 0003; ORM choice: Prisma / Drizzle)
-- **0005 — choose-websocket-library** (Socket.IO vs ws, spike evidence)
+- **0007 — choose-frontend-rendering-stack** (Angular is in, pixi.js is in code — record the game-rendering choice once the first arena renders)
+- **0008 — choose-session-and-tournament-model** (before the tournament/statistics modules)
+- **0009 — use-postgresql-with-an-orm** (after the database spike; ORM choice: Prisma / Drizzle; renumbered from the drafted 0006, which this branch claims for the player-metas record)
 
 ## Conventions
 
@@ -25,8 +35,12 @@ Not yet written; each is gated on an input that doesn't exist yet:
 - Naming: zero-padded sequence + present-tense imperative phrase,
   e.g. `0007-use-server-sessions-for-auth.md`.
 - Statuses: `Proposed` (under team review) → `Accepted` (binding) →
-  `Superseded by <link>` / `Rejected`.
+  `Superseded by <link>` / `Rejected` / withdrawn (number retired,
+  noted here).
 - **Never edit an Accepted ADR.** Write a new one and link both ways.
+- Retroactive ADRs are allowed when code chose before the record:
+  mark `Accepted (retroactive)` and say so in Status — the reasoning
+  still needs to be on file.
 - Acceptance rule: all four other team members read it, at least one
   pushed back or explicitly approved, and the proposer marks it
   Accepted in the weekly meeting.

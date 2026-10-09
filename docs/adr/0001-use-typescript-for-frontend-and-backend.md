@@ -56,8 +56,9 @@ time, not by reading each other's code.
 - Node's single-threaded compute ceiling is acceptable at our scale
   (5 concurrent game sessions is not a scaling problem), but game
   tick logic must stay off the main thread's hot path if it grows.
-- **Requires follow-on ADRs:** backend framework (0004), database +
-  ORM (0005), frontend framework and game rendering (planned).
+- **Requires follow-on ADRs:** backend framework (0004, written),
+  WebSocket library (0005, written), database + ORM (0009,
+  planned), frontend game rendering (0007, planned).
 
 ## Revisit trigger
 

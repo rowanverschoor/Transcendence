@@ -1,47 +1,122 @@
-import { MessageBody, SubscribeMessage, WebSocketGateway, OnGatewayConnection, OnGatewayDisconnect, ConnectedSocket } from "@nestjs/websockets";
-import type { Socket } from "socket.io";
-import { type ClientMessage, ArenaConfig, makeClientMessage, ServerMessage } from "@transcendence/shared";
-
-const arena: ArenaConfig = { width: 800, height: 800 };
-const ClientMessageSchema = makeClientMessage(arena);
+import {
+  ConnectedSocket,
+  MessageBody,
+  SubscribeMessage,
+  WebSocketGateway,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+} from "@nestjs/websockets";
+import { Inject } from "@nestjs/common";
+import type { ArgumentMetadata } from "@nestjs/common";
+import type { Server, Socket } from "socket.io";
+import {
+  type ClientMessage,
+  type ClientMessageSchema,
+  makeClientMessage,
+  ServerMessage,
+  RoomId,
+} from "@transcendence/shared";
+import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
+import { RoomRegistry } from "./gameroom.js";
+import { GAME_CONFIG, type GameConfig } from "./game.config.js";
+import { nanoid } from "nanoid";
 
 // Attaches to the HTTP server. CORS reflects any origin so `ng serve`
 // (different port) can complete the socket.io handshake in development.
 @WebSocketGateway({ cors: { origin: true } })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
-	handleConnection(): void {
-		console.log("CONNECTED");
-	}
+export class GameGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+  private readonly messagePipe: ZodValidationPipe<ClientMessageSchema>;
+  readonly config: GameConfig;
 
-	handleDisconnect(): void {
-		console.log("DISCONNECTED");
-	}
+  // The @swc-node runner emits `design:paramtypes`, so class-typed parameters
+  // (RoomRegistry) resolve by type. GameConfig stays on a string token: it is
+  // an interface, and interface paramtypes reflect as `Object`.
+  constructor(
+    @Inject(GAME_CONFIG) config: GameConfig,
+    private readonly registry: RoomRegistry,
+  ) {
+    this.messagePipe = new ZodValidationPipe(
+      makeClientMessage({
+        width: config.width,
+        height: config.height,
+      }),
+    );
+    this.config = config;
+  }
 
-	@SubscribeMessage("message")
-	handleMessage(@ConnectedSocket() client: Socket, @MessageBody() data: unknown): void {
-		// Binary messages might be interesting in a later stage.
-		// Could reduce overhead.
-		if (typeof data !== "string") {
-			return;
-		}
-		let msg: ClientMessage;
-		try {
-			msg = ClientMessageSchema.parse(JSON.parse(data));
-		} catch {
-			console.error("Invalid ClientMessage received");
-			return;
-		}
-		let response: ServerMessage;
-		switch (msg.type) {
-			case "join":
-				response = { type: "announcement", text: "A player joined" };
-				break;
+  afterInit(server: Server) {
+    const id: RoomId = nanoid(10);
+    this.registry.create(id, server);
+  }
 
-			case "input":
-				response = { type: "announcement", text: "Input received" };
-				break;
-		}
-		// Broadcast message to all clients except the sender
-		client.broadcast.emit("message", JSON.stringify(response));
-	}
+  handleConnection(client: Socket): void {
+    console.log(`CONNECT: ${client.id}`);
+  }
+
+  handleDisconnect(client: Socket): void {
+    this.registry.removeClient(client.id);
+  }
+
+  @SubscribeMessage("message")
+  handleMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: unknown,
+  ): void {
+    // The schema is arena-bound, and arena dims come from validated env, so
+    // the pipe is built in the constructor (decorators cannot see DI values).
+    const msg: ClientMessage = this.messagePipe.transform(payload, {
+      type: "body",
+    } satisfies ArgumentMetadata);
+    const response: ServerMessage = {
+      type: "announcement",
+      text: "Input received",
+    };
+    switch (msg.type) {
+      case "join": {
+        // Idempotent repeat join: the socket is already in a room, resend its
+        // snapshot instead of adding a second player.
+        const existing = this.registry.findForSocket(client.id);
+        if (existing !== undefined) {
+          const you = existing.clientIds[client.id];
+          if (you !== undefined) {
+            client.emit("message", JSON.stringify(existing.snapshotFor(you)));
+          }
+          return;
+        }
+        const room = msg.roomId
+          ? this.registry.get(msg.roomId)
+          : this.registry.first();
+        if (room === undefined) {
+          client.emit(
+            "message",
+            JSON.stringify({
+              type: "announcement",
+              text: "Room not found",
+            } satisfies ServerMessage),
+          );
+          return;
+        }
+        const id = room.addPlayer(client, msg.meta);
+        if (id === null) {
+          client.emit(
+            "message",
+            JSON.stringify({
+              type: "announcement",
+              text: "Room is full",
+            } satisfies ServerMessage),
+          );
+          return;
+        }
+        client.emit("message", JSON.stringify(room.snapshotFor(id)));
+        return;
+      }
+      case "input":
+        break;
+    }
+    // Broadcast message to all clients except the sender
+    client.broadcast.emit("message", JSON.stringify(response));
+  }
 }

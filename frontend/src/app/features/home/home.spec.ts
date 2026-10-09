@@ -5,6 +5,19 @@ describe("Home", () => {
   let component: Home;
   let fixture: ComponentFixture<Home>;
 
+  beforeAll(() => {
+    // jsdom does not implement matchMedia; Home polls it for animations.
+    window.matchMedia ??= (query: string) =>
+      ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList;
+  });
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Home],
