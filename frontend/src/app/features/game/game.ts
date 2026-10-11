@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, AfterViewInit, viewChild } from '@angular/core';
-import { GameSnapshot, GameUpdate, JoinRequest, ServerMessage } from '@transcendence/shared';
+import { GameSnapshot, JoinRequest, ServerMessage } from '@transcendence/shared';
 import { DisconnectDescription, io, Socket } from 'socket.io-client';
 import { PixiApp } from './render/pixi';
 
@@ -18,14 +18,21 @@ export class Game implements AfterViewInit, OnDestroy {
 	private destroyed = false;
 
 	async ngAfterViewInit(): Promise<void> {
-		const app = await PixiApp.create(this.host().nativeElement);
-
-		if (this.destroyed) {
-			app.destroy();
+		try
+		{
+			const app = await PixiApp.create(this.host().nativeElement);
+			if (this.destroyed) {
+				app.destroy();
+				return;
+			}
+			this.app = app;
+			this.connect();
+		}
+		catch (error)
+		{
+			console.log(error);
 			return;
 		}
-		this.app = app;
-		this.connect();
 	}
 
 	ngOnDestroy(): void {

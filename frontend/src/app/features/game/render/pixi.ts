@@ -14,6 +14,7 @@ export class PixiApp {
 	private destroyed = false;
 	readonly app = new Application();
 	private cam = new Rectangle();
+	// TEMP: all data in the following records & id are for testing purposes only
 	private cells: Record<CellId, CellState> = {
 		"1": { owner: "1", pos: { x: 100, y: 100 }, radius: 25 },
 		"2": { owner: "2", pos: { x: 400, y: 300 }, radius: 40 },
@@ -87,14 +88,16 @@ export class PixiApp {
 					const sizeFactor = 1 / Math.pow(cell.radius / 25, 0.45);
 					const vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * 5 * sizeFactor);
 					cellWorldPos = cellWorldPos.add(vel);
+					// TEMP: food collision will be moved to backend so not 2 players can eat the same food simultane due to ping etc
 					for (const [foodId, food] of Object.entries(this.food)) {
 						let dist = cellWorldPos.subtract(CoordToPoint(food.pos)).magnitude();
 						if (dist < cell.radius + food.radius) {
-							// move this logic to backend?
 							food.pos = <Coord>{x: -100, y:  -100};
 							cell.radius = Math.min(MAX_RADIUS, cell.radius + 1);
 						}
 					}
+					// The following collision should eventually only work on friendly cells // they might still need some distortion
+					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
 					for (const [otherId, otherCell] of Object.entries(this.cells)) {
 						if (id === otherId) continue;
 						let offset = cellWorldPos.subtract(CoordToPoint(otherCell.pos));
@@ -150,10 +153,24 @@ export class PixiApp {
 
 	public snapshot(snap: GameSnapshot): void {
 		if (this.destroyed) return;
+
+		for (const id of Object.keys(this.cellGraphics)) {
+		if (!(id in snap.cells)) {
+			this.cellGraphics[id].destroy();
+			delete this.cellGraphics[id];
+		}
+	}
+	for (const id of Object.keys(this.foodGraphics)) {
+		if (!(id in snap.food)) {
+			this.foodGraphics[id].destroy();
+			delete this.foodGraphics[id];
+		}
+	}
+
 		this.id = snap.you;
-		this.cells = snap.cells;
+		this.cells = structuredClone(snap.cells);
 		this.players = snap.players;
-		this.food = snap.food;
+		this.food = structuredClone(snap.food);
 	}
 
 	destroy(): void {
