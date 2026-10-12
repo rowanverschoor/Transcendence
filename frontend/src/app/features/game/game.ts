@@ -1,32 +1,33 @@
-import { Component, ElementRef, OnDestroy, AfterViewInit, viewChild } from '@angular/core';
-import { GameSnapshot, JoinRequest, ServerMessage } from '@transcendence/shared';
-import { DisconnectDescription, io, Socket } from 'socket.io-client';
+import { Component, ElementRef, OnDestroy, AfterViewInit, viewChild, inject } from '@angular/core';
+import { GameSnapshot, ServerMessage } from '@transcendence/shared';
+import { Socket } from 'socket.io-client';
 import { PixiApp } from './render/pixi';
-
-export let socket: Socket;
+import { GameSocket } from './gamesocket';
 
 @Component({
 	imports: [],
 	selector: 'app-game',
+	providers: [GameSocket],
 	styleUrl: './game.scss',
 	templateUrl: './game.html',
 })
+
 export class Game implements AfterViewInit, OnDestroy {
+	private readonly gameSocket = inject(GameSocket);
 	private readonly host = viewChild.required<ElementRef<HTMLDivElement>>('gameHost');
-	private snap: GameSnapshot | undefined;
 	private app?: PixiApp;
 	private destroyed = false;
 
 	async ngAfterViewInit(): Promise<void> {
 		try
 		{
-			const app = await PixiApp.create(this.host().nativeElement);
+			const app = await PixiApp.create(this.host().nativeElement, this.gameSocket);
 			if (this.destroyed) {
 				app.destroy();
 				return;
 			}
 			this.app = app;
-			this.connect();
+			this.gameSocket.connect((sm) => this.handleMessage(sm));
 		}
 		catch (error)
 		{
@@ -37,54 +38,22 @@ export class Game implements AfterViewInit, OnDestroy {
 
 	ngOnDestroy(): void {
 		this.destroyed = true;
-		socket?.disconnect();
 		this.app?.destroy();
 	}
 
-	connect(): void {
-		socket = io("/");
-
-		socket.on("connect", (): void => {
-			console.log("connected");
-			let jr: JoinRequest;
-			if (this.snap)
-				jr = {type: "join", roomId: this.snap.roomId};
-			else
-				jr = {type: "join"};
-			socket.send(jr);
-		});
-
-		socket.on("disconnect", (reason: Socket.DisconnectReason, description?: DisconnectDescription): void => {
-			if (description)
-				console.log("Disconnected: ", reason, description);
-			else
-				console.log("Disconnected: ", reason);
-		});
-
-		socket.on("message", (data: string): void => {
-			try {
-				const msg = JSON.parse(data);
-				const sm: ServerMessage = ServerMessage.parse(msg);
-				switch (sm.type) {
-					case "announcement":
-						console.log(msg);
-						break;
-					case "update":
-						this.app?.update(sm);
-						break;
-					case "snapshot":
-						this.snap = sm;
-						this.app?.snapshot(this.snap);
-						break;
-					default:
-						console.error("Invalid message received: ", msg);
-						break;
-				}
-			}
-			catch (error) {
-				console.error(error);
-				return;
-			}
-		})
+	private handleMessage(sm: ServerMessage): void {
+		switch (sm.type) {
+			case "announcement":
+				console.log(sm);
+				break;
+			case "update":
+				this.app?.update(sm);
+				break;
+			case "snapshot":
+				this.app?.snapshot(sm);
+				break;
+			default:
+				console.error("Invalid message received:", sm);
+		}
 	}
 }
