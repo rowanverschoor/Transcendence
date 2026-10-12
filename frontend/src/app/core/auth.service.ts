@@ -5,8 +5,6 @@ export interface User {
 	email: string;
 }
 
-
-
 @Service()
 export class AuthService {
 	currentUser = signal<User | null>(null);

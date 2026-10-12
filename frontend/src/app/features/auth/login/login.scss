@@ -32,6 +32,8 @@ h2 { font-size: 1.35rem; }
   border: 2px solid transparent;
   border-radius: 999px;
   cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
 
   &--primary {
     background: var(--primary);

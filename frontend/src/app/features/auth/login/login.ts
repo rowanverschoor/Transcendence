@@ -1,17 +1,20 @@
 import { Component, inject, signal } from "@angular/core";
+import { RouterLink } from "@angular/router";
 import { AuthService } from "../../../core/auth.service";
 
 @Component({
-  imports: [],
+  imports: [RouterLink],
   selector: "app-login",
   styleUrl: "./login.scss",
   templateUrl: "./login.html",
 })
+
 export class Login {
   protected auth = inject(AuthService);
 
   protected email = signal("");
   protected password = signal("");
+
   protected submitted = signal(false);
   protected serverError = signal("");
 

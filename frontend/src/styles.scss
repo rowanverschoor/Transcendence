@@ -14,6 +14,8 @@ $palette: (
   "error": #e86f5f,
 );
 
+// find a way to change between palettes in user settings
+// or browser light/dark mode
 $palette2: (
   "page": #ffffff,
   "surface": #dbdbdb,
@@ -29,7 +31,7 @@ $palette2: (
 );
 
 :root {
-  @each $name, $value in $palette {
+  @each $name, $value in $palette2 {
     --#{$name}: #{$value};
   }
   --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
