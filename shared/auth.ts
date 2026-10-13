@@ -9,15 +9,17 @@ import { z } from "zod";
 
 export const UserId = z.uuidv4();
 
-const Email = z.email();
-const DisplayName = z.string().min(3).max(32);
+// Single fields, exported so a form can check one field at a time.
+export const Email = z.email();
+export const DisplayName = z.string().trim().min(3).max(32);
+export const Password = z.string().min(8).max(64);
 
 // --- Client -> server --------------------------------------------------------
 
 export const RegisterRequest = z.object({
   email: Email,
   displayName: DisplayName,
-  password: z.string().min(8),
+  password: Password,
 });
 
 export const LoginRequest = z.object({
