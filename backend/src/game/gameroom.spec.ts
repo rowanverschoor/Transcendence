@@ -92,6 +92,8 @@ describe("GameRoom.snapshotFor", () => {
       color: "#000000",
     });
     expect(Object.keys(snap.food)).toHaveLength(2);
-    expect(snap.cells).toEqual({});
+    // addPlayer now spawns the player's own start cell.
+    expect(Object.keys(snap.cells)).toHaveLength(1);
+    expect(Object.values(snap.cells)[0]?.owner).toBe(id);
   });
 });
