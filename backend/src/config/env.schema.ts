@@ -28,6 +28,7 @@ const envSchema = z
     ARENA_HEIGHT: z.coerce.number().int().min(100).max(4000).default(800),
     FOOD_RADIUS: z.coerce.number().int().min(1).max(100).default(5),
     N_FOOD_CHUNKS: z.coerce.number().int().min(1).max(500).default(50),
+    MAX_VELOCITY: z.coerce.number().int().min(1).max(100).default(10),
   })
   .refine(
     (env) =>
