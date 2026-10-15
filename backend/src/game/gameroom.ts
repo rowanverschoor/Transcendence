@@ -9,9 +9,10 @@ import {
 } from "@transcendence/shared";
 import { RandomFromTo } from "./utils.js";
 import type { GameConfig } from "./game.config.js";
-import type { GameSnapshot } from "@transcendence/shared";
+import type { GameSnapshot, GameUpdate } from "@transcendence/shared";
 import type { Socket, Server } from "socket.io";
 import { Injectable, Inject } from "@nestjs/common";
+import { Interval } from "@nestjs/schedule";
 import { GAME_CONFIG } from "./game.config.js";
 import { nanoid } from "nanoid";
 
@@ -29,10 +30,16 @@ export class GameRoom {
   readonly socket: Server;
   readonly clients: Record<PlayerId, Socket> = {};
   readonly clientIds: Record<Socket["id"], PlayerId> = {};
-  readonly players: Record<PlayerId, PlayerMeta> = {};
+  readonly players: Record<PlayerId, { meta: PlayerMeta; seq: number }> = {};
   readonly cells: Record<CellId, CellState> = {};
   readonly food: Record<FoodId, Food> = {};
   readonly capacity: number;
+  readonly tick: number = 0;
+  readonly updates: {
+    players: Record<PlayerId, PlayerMeta>;
+    cells: Record<CellId, CellState>;
+    food: Record<FoodId, Food>;
+  } = { players: {}, cells: {}, food: {} };
 
   constructor(
     readonly config: GameConfig,
@@ -47,13 +54,35 @@ export class GameRoom {
     }
   }
 
+  makeUpdate = (id: PlayerId): GameUpdate => {
+    return {
+      type: "update",
+      tick: this.tick,
+      seq: this.players[id].seq,
+      players: this.updates.players,
+      cells: this.updates.cells, // TODO: Filter on proximity to player.
+      food: this.updates.food, // Maybe here too
+    };
+  };
+
+  @Interval(1000 / 20)
+  handleInterval() {
+    for (const [_, socket] of Object.entries(this.clients))
+      socket
+        .to(this.id)
+        .emit(
+          "message",
+          JSON.stringify(this.makeUpdate(this.clientIds[socket.id])),
+        );
+  }
+
   // TODO: Implement auth
   // PlayerIds are visible to all players. Make sure players can't impersonate eachother
   readonly addPlayer = (client: Socket, meta: PlayerMeta): PlayerId | null => {
     if (Object.keys(this.players).length >= this.capacity) return null;
     let id: PlayerId = nanoid(5);
     while (id in this.players) id = nanoid(5);
-    this.players[id] = meta;
+    this.players[id] = { meta: meta, seq: 0 };
     this.clients[id] = client;
     this.clientIds[client.id] = id;
     return id;
