@@ -10,6 +10,7 @@ const config: GameConfig = {
   capacity: 3,
   foodRadius: 10,
   nFoodChunks: 2,
+  maxVelocity: 10,
 };
 
 const makeRoom = (capacity = 3): GameRoom =>
