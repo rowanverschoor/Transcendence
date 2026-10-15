@@ -63,6 +63,7 @@ export class GameRoom {
     const id = this.clientIds[socketId];
     if (id === undefined) return;
     delete this.clientIds[socketId];
+    this.clients[id].leave(this.id);
     delete this.clients[id];
     delete this.players[id];
   };

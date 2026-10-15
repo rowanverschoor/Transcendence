@@ -18,7 +18,7 @@ import {
   RoomId,
 } from "@transcendence/shared";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
-import { RoomRegistry } from "./gameroom.js";
+import { GameRoom, RoomRegistry } from "./gameroom.js";
 import { GAME_CONFIG, type GameConfig } from "./game.config.js";
 import { nanoid } from "nanoid";
 
@@ -74,13 +74,23 @@ export class GameGateway
       case "join": {
         // Idempotent repeat join: the socket is already in a room, resend its
         // snapshot instead of adding a second player.
-        const existing = this.registry.findForSocket(client.id);
+        let existing: RoomId | undefined = undefined;
+        client.rooms.forEach((value: string): void => {
+          if (value === client.id || !RoomId.safeParse(value).success) return;
+          if (existing !== undefined)
+            throw `Socket ${client.id} assigned to multiple GameRooms`;
+          existing = value;
+        });
         if (existing !== undefined) {
-          const you = existing.clientIds[client.id];
+          const room: GameRoom | undefined = this.registry.get(existing);
+          if (room === undefined)
+            throw "Socket RoomId not in GameRoom Registry";
+          const you = room.clientIds[client.id];
           if (you !== undefined) {
-            client.emit("message", JSON.stringify(existing.snapshotFor(you)));
+            client.emit("message", JSON.stringify(room.snapshotFor(you)));
+            return;
           }
-          return;
+          throw `GameRoom ${room.id} can't find PlayerId for socket ${client.id}`;
         }
         const room = msg.roomId
           ? this.registry.get(msg.roomId)
@@ -106,7 +116,8 @@ export class GameGateway
           );
           return;
         }
-        client.emit("message", JSON.stringify(room.snapshotFor(id)));
+        client.emit("message", JSON.stringify(room.snapshotFor(id))); // Should room.addplayer handle this instead?
+        client.join(room.id);
         return;
       }
       case "input":

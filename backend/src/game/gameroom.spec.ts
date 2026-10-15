@@ -21,7 +21,7 @@ const makeRoom = (capacity = 3): GameRoom =>
   );
 
 const socketOf = (id: string) =>
-  ({ id, emit: () => undefined }) as unknown as Socket;
+  ({ id, emit: () => undefined, join: () => undefined, leave: () => undefined }) as unknown as Socket;
 
 const meta = (over: Partial<PlayerMeta> = {}): PlayerMeta => ({
   name: over.name,
