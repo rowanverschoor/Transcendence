@@ -1,8 +1,35 @@
+@use "../mixins" as *;
+
 :host {
 	color: var(--text);
 	display: flex;
 	flex-direction: column;
 	height: 100dvh;
+}
+
+.hud {
+	@include panel(0.5rem 1rem);
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin: 0.5rem;
+	font-family: var(--font-display);
+
+	&__links,
+	&__auth {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	&__links { flex-wrap: wrap; }
+	&__auth { margin-left: auto; }
+
+	&__user {
+		font-weight: 700;
+		color: var(--secondary);
+	}
 }
 
 main {
@@ -11,3 +38,5 @@ main {
 	position: relative;
 	overflow: auto;
 }
+
+.hud .btn { padding: 0.4rem 1.1rem; }

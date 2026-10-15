@@ -1,8 +1,6 @@
 import { Service, signal, computed } from "@angular/core";
 import type { User } from "@transcendence/shared/auth";
 
-
-
 @Service()
 export class AuthService {
 	currentUser = signal<User | null>(null);
