@@ -36,6 +36,10 @@ const makeSocket = (id: string) => {
     id,
     emit: record(direct),
     broadcast: { emit: record(broadcasted) },
+    rooms: new Set([id]),
+    join: (room: string): void => {
+      socket.rooms.add(room);
+    },
   } as unknown as Socket;
   return { socket, direct, broadcasted };
 };
@@ -150,7 +154,7 @@ describe("GameGateway.handleMessage", () => {
     expect(Object.keys(registry.first()?.players ?? {})).toHaveLength(0);
   });
 
-  it("input broadcasts an announcement to everyone except the sender", () => {
+  it("input responds with an acknowledgement to the sender", () => {
     const { gateway } = makeGateway();
     const sender = makeSocket("s1");
     const other = makeSocket("s2");
@@ -163,10 +167,14 @@ describe("GameGateway.handleMessage", () => {
         mousepos: { x: 1, y: 2 },
       }),
     );
-    expect(sender.broadcasted).toEqual([
-      { type: "announcement", text: "Input received" },
-    ]);
+    expect(sender.direct).toHaveLength(2);
+    expect(sender.direct).toContainEqual({
+      type: "announcement",
+      text: "Input received",
+    } satisfies ServerMessage);
     expect(other.direct).toHaveLength(0);
+    expect(sender.broadcasted).toHaveLength(0);
+    expect(other.broadcasted).toHaveLength(0);
   });
 });
 

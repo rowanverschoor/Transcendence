@@ -111,6 +111,13 @@ export class GameGateway
       }
       case "input":
         console.warn("Player input not yet handled");
+        client.emit(
+          "message",
+          JSON.stringify({
+            type: "announcement",
+            text: "Input received",
+          } satisfies ServerMessage),
+        );
         return;
       default:
         throw "Unhandled ClientMessage type received";
