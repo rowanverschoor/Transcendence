@@ -167,7 +167,7 @@ describe("GameGateway.handleMessage", () => {
       JSON.stringify({
         type: "input",
         seq: 1,
-        mousepos: { x: 1, y: 2 },
+        cells: [{ id: "c0", pos: { x: 1, y: 2 } }],
       }),
     );
     expect(sender.direct).toHaveLength(2);

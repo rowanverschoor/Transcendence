@@ -9,7 +9,7 @@ const pipe = new ZodValidationPipe(makeClientMessage(arena));
 const wireMessage = JSON.stringify({
   type: "input",
   seq: 1,
-  mousepos: { x: 10, y: 20 },
+  cells: [{ id: "c0", pos: { x: 10, y: 20 } }],
 });
 
 /** Asserts the callable throws a WsException whose message contains a fragment. */
@@ -28,7 +28,7 @@ describe("ZodValidationPipe", () => {
     expect(pipe.transform(wireMessage, {} as never)).toEqual({
       type: "input",
       seq: 1,
-      mousepos: { x: 10, y: 20 },
+      cells: [{ id: "c0", pos: { x: 10, y: 20 } }],
     });
   });
 
@@ -60,7 +60,7 @@ describe("ZodValidationPipe", () => {
     expectWsError(
       () =>
         pipe.transform(
-          JSON.stringify({ type: "input", mousepos: { x: 0, y: 0 } }),
+          JSON.stringify({ type: "input", cells: [{ id: "c0", pos: { x: 0, y: 0 } }] }),
           {} as never,
         ),
       "seq: ",
@@ -74,11 +74,11 @@ describe("ZodValidationPipe", () => {
           JSON.stringify({
             type: "input",
             seq: 0,
-            mousepos: { x: 801, y: 20 },
+            cells: [{ id: "c0", pos: { x: 801, y: 20 } }],
           }),
           {} as never,
         ),
-      "mousepos.x: Too big: expected number to be <=800",
+      "cells.0.pos.x: Too big: expected number to be <=800",
     );
   });
 
@@ -86,7 +86,7 @@ describe("ZodValidationPipe", () => {
     expectWsError(
       () =>
         pipe.transform(
-          JSON.stringify({ seq: 1, mousepos: { x: 1, y: 1 } }),
+          JSON.stringify({ seq: 1, cells: [{ id: "c0", pos: { x: 1, y: 1 } }] }),
           {} as never,
         ),
       "type: Invalid discriminator value. Expected 'input' | 'join'",

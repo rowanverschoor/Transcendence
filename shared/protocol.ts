@@ -111,7 +111,7 @@ export const JoinRequest = z.compile(
 
 export const PlayerInput = z.compile(
   SequencedSchema("input", {
-    mousepos: Coord,
+    cells: z.array(z.object({ id: CellId, pos: Coord })),
     split: z.boolean().optional(),
     eject: z.boolean().optional(),
   }),
@@ -125,7 +125,7 @@ export const ClientMessage = z.compile(
 export const makePlayerInput = (cfg: ArenaConfig) =>
   z.compile(
     SequencedSchema("input", {
-      mousepos: makeCoord(cfg),
+      cells: z.array(z.object({ id: CellId, pos: makeCoord(cfg) })),
       split: z.boolean().optional(),
       eject: z.boolean().optional(),
     }),
