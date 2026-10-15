@@ -85,6 +85,8 @@ export class GameRoom {
     this.players[id] = { meta: meta, seq: 0 };
     this.clients[id] = client;
     this.clientIds[client.id] = id;
+    client.join(this.id);
+    client.emit("message", JSON.stringify(this.snapshotFor(id)));
     return id;
   };
 
