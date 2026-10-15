@@ -8,6 +8,7 @@ export type GameConfig = ArenaConfig & {
   readonly capacity: number;
   readonly foodRadius: number;
   readonly nFoodChunks: number;
+  readonly maxVelocity: number;
 };
 
 // Injection token: string keys stay stable across the module boundary.
@@ -27,5 +28,6 @@ export const gameConfigProvider: Provider = {
     capacity: config.getOrThrow("ROOM_CAPACITY"),
     foodRadius: config.getOrThrow("FOOD_RADIUS"),
     nFoodChunks: config.getOrThrow("N_FOOD_CHUNKS"),
+    maxVelocity: config.getOrThrow("MAX_VELOCITY"),
   }),
 };
