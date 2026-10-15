@@ -116,8 +116,6 @@ export class GameGateway
           );
           return;
         }
-        client.emit("message", JSON.stringify(room.snapshotFor(id))); // Should room.addplayer handle this instead?
-        client.join(room.id);
         return;
       }
       case "input":
