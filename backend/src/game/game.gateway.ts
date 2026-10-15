@@ -67,6 +67,18 @@ export class GameGateway
   ): void {
     // The schema is arena-bound, and arena dims come from validated env, so
     // the pipe is built in the constructor (decorators cannot see DI values).
+    const getRoomIdfromSocketRooms = (): RoomId | undefined => {
+      let id: RoomId | undefined = undefined;
+      client.rooms.forEach((value: string): void => {
+        if (value === client.id || !RoomId.safeParse(value).success)
+          return undefined;
+        if (id !== undefined)
+          throw `Socket ${client.id} assigned to multiple GameRooms`;
+        id = value;
+      });
+      return id;
+    };
+
     const msg: ClientMessage = this.messagePipe.transform(payload, {
       type: "body",
     } satisfies ArgumentMetadata);
@@ -74,13 +86,7 @@ export class GameGateway
       case "join": {
         // Idempotent repeat join: the socket is already in a room, resend its
         // snapshot instead of adding a second player.
-        let existing: RoomId | undefined = undefined;
-        client.rooms.forEach((value: string): void => {
-          if (value === client.id || !RoomId.safeParse(value).success) return;
-          if (existing !== undefined)
-            throw `Socket ${client.id} assigned to multiple GameRooms`;
-          existing = value;
-        });
+        const existing = getRoomIdfromSocketRooms();
         if (existing !== undefined) {
           const room: GameRoom | undefined = this.registry.get(existing);
           if (room === undefined)
