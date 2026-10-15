@@ -11,6 +11,8 @@ const config: GameConfig = {
   height: 800,
   capacity: 3,
   foodRadius: 10,
+  playerRadius: 10,
+  maxVelocity: 10,
   nFoodChunks: 2,
 };
 
