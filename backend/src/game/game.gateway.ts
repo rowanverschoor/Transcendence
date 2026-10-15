@@ -70,10 +70,6 @@ export class GameGateway
     const msg: ClientMessage = this.messagePipe.transform(payload, {
       type: "body",
     } satisfies ArgumentMetadata);
-    const response: ServerMessage = {
-      type: "announcement",
-      text: "Input received",
-    };
     switch (msg.type) {
       case "join": {
         // Idempotent repeat join: the socket is already in a room, resend its
@@ -114,9 +110,10 @@ export class GameGateway
         return;
       }
       case "input":
-        break;
+        console.warn("Player input not yet handled");
+        return;
+      default:
+        throw "Unhandled ClientMessage type received";
     }
-    // Broadcast message to all clients except the sender
-    client.broadcast.emit("message", JSON.stringify(response));
   }
-}
+} // Class GameGateway
