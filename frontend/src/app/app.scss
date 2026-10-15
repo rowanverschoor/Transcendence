@@ -1,9 +1,4 @@
-@mixin panel {
-	background: var(--surface);
-	border: 2px solid var(--border);
-	border-radius: 22px 26px 20px 28px;
-	padding: 0.5rem 1rem;
-}
+@use "../mixins" as *;
 
 :host {
 	color: var(--text);
@@ -13,7 +8,7 @@
 }
 
 .hud {
-	@include panel;
+	@include panel(0.5rem 1rem);
 	flex: none;
 	display: flex;
 	align-items: center;
@@ -37,32 +32,11 @@
 	}
 }
 
-.btn {
-	font: 700 1rem var(--font-body);
-	padding: 0.4rem 1.1rem;
-	border: 2px solid transparent;
-	border-radius: 999px;
-	cursor: pointer;
-	display: inline-block;
-	text-decoration: none;
-
-	&--primary {
-		background: var(--primary);
-		color: var(--on-primary);
-		&:hover { filter: brightness(1.06); }
-	}
-	&--ghost {
-		background: transparent;
-		color: var(--text);
-		border-color: var(--border);
-		&:hover { border-color: var(--muted); }
-		&.active { border-color: var(--secondary); color: var(--secondary); }
-	}
-}
-
 main {
 	flex: 1;
 	min-height: 0;
 	position: relative;
 	overflow: auto;
 }
+
+.hud .btn { padding: 0.4rem 1.1rem; }
