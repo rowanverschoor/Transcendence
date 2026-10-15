@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-08.
+Owner: a0f. Last updated: 2026-10-13.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -104,7 +104,9 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   the TypeScript type and the runtime check, for frontend and backend. This
   means milestone 3 validates input with zod, not with NestJS's default
   class-validator. (2026-10-07)
-- Display names are 3 to 32 characters. (2026-10-07)
+- Display names are 3 to 32 characters. Spaces at the start and end are
+  removed before the length is checked, so `Sam` and `Sam ` can't both exist.
+  (2026-10-07, trimming since 2026-10-13)
 - Register requires a password of at least 8 characters. Login only requires
   a non-empty password. The length rule applies when a password is chosen, so
   if the rules get stricter later, older passwords still work. (2026-10-07)
@@ -126,9 +128,10 @@ Smaller things to handle in a specific milestone.
 - **Milestone 3:** decide what error responses look like. A failed login must
   give the same answer whatever went wrong, so nobody can find out which
   emails have an account.
-- **Milestone 3:** add the password maximum of 64 and the list of common
-  passwords to `RegisterRequest`. The maximum also stays under bcrypt's limit,
-  which ignores everything after 72 bytes.
+- **Milestone 3:** add the list of common passwords to `RegisterRequest`. The
+  password maximum of 64 is already in the contract (2026-10-13), because the
+  register form needed it. The maximum also stays under bcrypt's limit, which
+  ignores everything after 72 bytes.
 
 ## Open questions
 
