@@ -125,15 +125,17 @@ export class GameGateway
         return;
       }
       case "input":
-        console.warn("Player input not yet handled");
-        client.emit(
-          "message",
-          JSON.stringify({
-            type: "announcement",
-            text: "Input received",
-          } satisfies ServerMessage),
-        );
-        return;
+        const roomId = getRoomIdfromSocketRooms();
+        if (roomId === undefined) {
+          console.error(
+            `Received input from socket ${client.id} not assigned to any game room`,
+          );
+          return;
+        }
+        const room = this.registry.get(roomId);
+        if (room === undefined)
+          throw `Socket ${client.id} assigned to room unknown to room registry`;
+        room.processInput(client, msg);
       default:
         throw "Unhandled ClientMessage type received";
     }
