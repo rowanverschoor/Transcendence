@@ -7,9 +7,13 @@ import {
   PlayerMeta,
   RoomId,
 } from "@transcendence/shared";
-import { RandomFromTo } from "./utils.js";
+import { distance, RandomCoord, RandomFromTo, RandomUpTo } from "./utils.js";
 import type { GameConfig } from "./game.config.js";
-import type { GameSnapshot, GameUpdate } from "@transcendence/shared";
+import type {
+  GameSnapshot,
+  GameUpdate,
+  PlayerInput,
+} from "@transcendence/shared";
 import type { Socket, Server } from "socket.io";
 import { Injectable, Inject } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
@@ -30,16 +34,22 @@ export class GameRoom {
   readonly socket: Server;
   readonly clients: Record<PlayerId, Socket> = {};
   readonly clientIds: Record<Socket["id"], PlayerId> = {};
-  readonly players: Record<PlayerId, { meta: PlayerMeta; seq: number }> = {};
+  readonly capacity: number;
+
+  readonly players: Record<PlayerId, PlayerMeta> = {};
   readonly cells: Record<CellId, CellState> = {};
   readonly food: Record<FoodId, Food> = {};
-  readonly capacity: number;
-  readonly tick: number = 0;
+
+  readonly tickRate_Hz: number = 20; // NOTE: Add to config?
+  readonly tickPeriod_ms: number = 1000 / this.tickRate_Hz;
+  private tick: number = 0;
+
   readonly updates: {
     players: Record<PlayerId, PlayerMeta>;
     cells: Record<CellId, CellState>;
     food: Record<FoodId, Food>;
   } = { players: {}, cells: {}, food: {} };
+  readonly PlayerSeqs: Record<PlayerId, number> = {};
 
   constructor(
     readonly config: GameConfig,
@@ -58,15 +68,21 @@ export class GameRoom {
     return {
       type: "update",
       tick: this.tick,
-      seq: this.players[id].seq,
+      seq: this.PlayerSeqs[id],
       players: this.updates.players,
       cells: this.updates.cells, // TODO: Filter on proximity to player.
       food: this.updates.food, // Maybe here too
     };
   };
 
+  private nextCell = 0;
+  newCellId = (): string => (this.nextCell++).toString();
+
   @Interval(1000 / 20)
   handleInterval() {
+    this.tick += 1;
+    for (const [id, update] of Object.entries(this.updates.cells))
+      this.cells[id].pos = update.pos;
     for (const [_, socket] of Object.entries(this.clients))
       socket
         .to(this.id)
@@ -74,7 +90,41 @@ export class GameRoom {
           "message",
           JSON.stringify(this.makeUpdate(this.clientIds[socket.id])),
         );
+    this.updates.players = {};
+    this.updates.cells = {};
+    this.updates.food = {};
   }
+
+  readonly processInput = (socket: Socket, input: PlayerInput) => {
+    const playerId: PlayerId = this.clientIds[socket.id];
+    const inputValid = (): boolean => {
+      for (const newState of input.cells) {
+        const currentState = this.cells[newState.id];
+        if (currentState === undefined || currentState.owner !== playerId)
+          return false;
+        // NOTE: Using the tick period for this calculation might be too naive. Will cause rubber banding on dropped packets.
+        // TODO: Scale maxVelocity based on cell radius
+        if (
+          distance(currentState.pos, newState.pos) >
+          this.tickPeriod_ms * this.config.maxVelocity
+        )
+          return false;
+      }
+      return true;
+    };
+    if (!inputValid()) {
+      // TODO: Decide if and when we kick players emiting invalid input
+      // Also ban and doxx them, sell data on darkweb, blame hackers
+      console.log(`Player ${this.clientIds[socket.id]} sent invalid input`);
+      return;
+    }
+    for (const cell of input.cells) {
+      // NOTE: Calculating collisions will happen at the next tick.
+      const updated = this.cells[cell.id];
+      updated.pos = cell.pos;
+    }
+    this.PlayerSeqs[playerId] = input.seq;
+  };
 
   // TODO: Implement auth
   // PlayerIds are visible to all players. Make sure players can't impersonate eachother
@@ -82,9 +132,20 @@ export class GameRoom {
     if (Object.keys(this.players).length >= this.capacity) return null;
     let id: PlayerId = nanoid(5);
     while (id in this.players) id = nanoid(5);
-    this.players[id] = { meta: meta, seq: 0 };
+    this.players[id] = meta;
+    this.updates.players[id] = meta;
+    this.PlayerSeqs[id] = 0;
     this.clients[id] = client;
     this.clientIds[client.id] = id;
+
+    const cellId = this.newCellId();
+    const cell: CellState = {
+      owner: id,
+      pos: RandomCoord(this.config.width, this.config.height, 0.15),
+      radius: this.config.playerRadius,
+    };
+    this.cells[cellId] = cell;
+    this.updates.cells[cellId] = cell;
     client.join(this.id);
     client.emit("message", JSON.stringify(this.snapshotFor(id)));
     return id;
@@ -93,10 +154,11 @@ export class GameRoom {
   readonly removeClient = (socketId: Socket["id"]): void => {
     const id = this.clientIds[socketId];
     if (id === undefined) return;
-    delete this.clientIds[socketId];
     this.clients[id].leave(this.id);
+    delete this.clientIds[socketId];
     delete this.clients[id];
     delete this.players[id];
+    delete this.PlayerSeqs[id];
   };
 
   readonly snapshotFor = (you: PlayerId): GameSnapshot => ({
@@ -106,7 +168,7 @@ export class GameRoom {
     arena: { width: this.config.width, height: this.config.height },
     tick: 0,
     players: this.players,
-    cells: this.cells,
+    cells: this.cells, // TODO: Filter for proximity to player
     food: this.food,
   });
 }
