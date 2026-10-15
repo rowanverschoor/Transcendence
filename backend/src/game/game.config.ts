@@ -7,6 +7,7 @@ import type { Env } from "../config/env.schema.js";
 export type GameConfig = ArenaConfig & {
   readonly capacity: number;
   readonly foodRadius: number;
+  readonly playerRadius: number;
   readonly nFoodChunks: number;
   readonly maxVelocity: number;
 };
@@ -27,6 +28,7 @@ export const gameConfigProvider: Provider = {
     height: config.getOrThrow("ARENA_HEIGHT"),
     capacity: config.getOrThrow("ROOM_CAPACITY"),
     foodRadius: config.getOrThrow("FOOD_RADIUS"),
+    playerRadius: config.getOrThrow("PLAYER_RADIUS"),
     nFoodChunks: config.getOrThrow("N_FOOD_CHUNKS"),
     maxVelocity: config.getOrThrow("MAX_VELOCITY"),
   }),
