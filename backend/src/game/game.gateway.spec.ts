@@ -40,6 +40,9 @@ const makeSocket = (id: string) => {
     join: (room: string): void => {
       socket.rooms.add(room);
     },
+    leave: (room: string): void => {
+      socket.rooms.delete(room);
+    },
   } as unknown as Socket;
   return { socket, direct, broadcasted };
 };
