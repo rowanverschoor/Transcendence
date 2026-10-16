@@ -168,6 +168,8 @@ export const GameSnapshot = z.compile(
     roomId: RoomId,
     /** The receiving client's own player: which cells are yours. */
     you: PlayerId,
+    /** Starting count for client's seq counter. */
+    seq: z.number().int().min(0),
     arena: Arena,
     tick: z.number().int().min(0),
     players: z.record(PlayerId, PlayerMeta),
