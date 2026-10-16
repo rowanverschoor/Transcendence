@@ -84,16 +84,34 @@ export type FoodId = z.infer<typeof FoodId>;
 
 // --- Client -> server --------------------------------------------------------
 
+/**
+ * Display-level info for one player; positions live on their cells.
+ * Both fields are client-supplied (ADR 0006): the backend stores them
+ * verbatim — no palette, no conflict resolution, no default names.
+ * `name` is optional; unnamed rivals are a renderer concern. `color` is
+ * required by the join rule below, so a snapshot player always carries one
+ * and the canvas never invents a fill.
+ */
+export const PlayerMeta = z.compile(
+  z.object({
+    name: z.string().min(1).max(32).optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  }),
+);
+
 export const JoinRequest = z.compile(
   z.object({
     ...Typed("join").shape,
     roomId: RoomId.optional(),
+    // ADR 0006: every client declares its color at join time; a join without
+    // meta is rejected by the validation pipe, not defaulted server-side.
+    meta: PlayerMeta,
   }),
 );
 
 export const PlayerInput = z.compile(
   SequencedSchema("input", {
-    mousepos: Coord,
+    cells: z.array(z.object({ id: CellId, pos: Coord })),
     split: z.boolean().optional(),
     eject: z.boolean().optional(),
   }),
@@ -107,7 +125,7 @@ export const ClientMessage = z.compile(
 export const makePlayerInput = (cfg: ArenaConfig) =>
   z.compile(
     SequencedSchema("input", {
-      mousepos: makeCoord(cfg),
+      cells: z.array(z.object({ id: CellId, pos: makeCoord(cfg) })),
       split: z.boolean().optional(),
       eject: z.boolean().optional(),
     }),
@@ -115,19 +133,9 @@ export const makePlayerInput = (cfg: ArenaConfig) =>
 
 export const makeClientMessage = (cfg: ArenaConfig) =>
   z.compile(z.discriminatedUnion("type", [makePlayerInput(cfg), JoinRequest]));
+export type ClientMessageSchema = ReturnType<typeof makeClientMessage>;
 
 // --- Game state (shared between snapshot and deltas) --------------------------
-
-/** Display-level info for one player; positions live on their cells. */
-export const PlayerMeta = z.compile(
-  z.object({
-    name: z.string().min(1).max(32).optional(),
-    color: z
-      .string()
-      .regex(/^#[0-9a-fA-F]{6}$/)
-      .optional(),
-  }),
-);
 
 /** One blob: a player owns one cell before splitting, N after. */
 export const CellState = z.compile(
@@ -160,6 +168,8 @@ export const GameSnapshot = z.compile(
     roomId: RoomId,
     /** The receiving client's own player: which cells are yours. */
     you: PlayerId,
+    /** Starting count for client's seq counter. */
+    seq: z.number().int().min(0),
     arena: Arena,
     tick: z.number().int().min(0),
     players: z.record(PlayerId, PlayerMeta),

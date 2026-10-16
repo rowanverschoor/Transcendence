@@ -3,3 +3,4 @@ dist/
 mise.local.toml
 .angular/
 .env
+coverage/
