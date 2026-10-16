@@ -46,7 +46,7 @@ export class GameRoom {
   private tick: number = 0;
 
   readonly updates: {
-    players: Record<PlayerId, PlayerMeta>;
+    players: Record<PlayerId, PlayerMeta | null>;
     cells: Record<CellId, CellState>;
     food: Record<FoodId, Food>;
   } = { players: {}, cells: {}, food: {} };
@@ -171,9 +171,8 @@ export class GameRoom {
     delete this.PlayerSeqs[pid];
     for (const [cid, _] of Object.entries(this.cells))
       if (this.cells[cid].owner === pid) delete this.cells[cid];
-    // A pending buffer entry for a dead player would crash doTick's
-    // commit loop (its canonical cell is gone), so drop those too.
-    delete this.updates.players[pid];
+    // Null entry in update message tells frontend the player has been removed
+    this.updates.players[pid] = null;
     for (const [cid, cell] of Object.entries(this.updates.cells))
       if (cell.owner === pid) delete this.updates.cells[cid];
   };
