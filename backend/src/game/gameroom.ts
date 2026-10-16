@@ -181,6 +181,7 @@ export class GameRoom {
     type: "snapshot",
     roomId: this.id,
     you,
+    seq: you in this.PlayerSeqs ? this.PlayerSeqs[you] : 0,
     arena: { width: this.config.width, height: this.config.height },
     tick: 0,
     players: this.players,
