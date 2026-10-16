@@ -121,9 +121,11 @@ export class GameRoom {
       return;
     }
     for (const cell of input.cells) {
+      // Copy with the new pos: this.cells keeps the last-tick pos so the
+      // next input this tick is still validated against it; the buffer
+      // is committed to this.cells in doTick().
+      this.updates.cells[cell.id] = { ...this.cells[cell.id], pos: cell.pos };
       // NOTE: Calculating collisions will happen at the next tick.
-      this.updates.cells[cell.id] = this.cells[cell.id];
-      this.updates.cells[cell.id].pos = cell.pos;
     }
     this.PlayerSeqs[playerId] = input.seq;
     // TODO: Handle splitting and ejection
@@ -150,7 +152,10 @@ export class GameRoom {
       radius: this.config.playerRadius,
     };
     this.cells[cellId] = cell;
-    this.updates.cells[cellId] = cell;
+    // Copy, not alias: updates.cells must buffer the intended next-tick state
+    // while this.cells stays at the last-tick state that inputs validate
+    // against.
+    this.updates.cells[cellId] = { ...cell };
     client.join(this.id);
     client.emit("message", JSON.stringify(this.snapshotFor(id)));
     return id;
