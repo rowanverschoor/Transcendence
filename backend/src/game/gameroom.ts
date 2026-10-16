@@ -152,13 +152,15 @@ export class GameRoom {
   };
 
   readonly removeClient = (socketId: Socket["id"]): void => {
-    const id = this.clientIds[socketId];
-    if (id === undefined) return;
-    this.clients[id].leave(this.id);
+    const pid = this.clientIds[socketId];
+    if (pid === undefined) return;
+    this.clients[pid].leave(this.id);
     delete this.clientIds[socketId];
-    delete this.clients[id];
-    delete this.players[id];
-    delete this.PlayerSeqs[id];
+    delete this.clients[pid];
+    delete this.players[pid];
+    delete this.PlayerSeqs[pid];
+    for (const [cid, _] of Object.entries(this.cells))
+      if (this.cells[cid].owner === pid) delete this.cells[cid];
   };
 
   readonly snapshotFor = (you: PlayerId): GameSnapshot => ({
