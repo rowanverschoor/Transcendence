@@ -171,6 +171,11 @@ export class GameRoom {
     delete this.PlayerSeqs[pid];
     for (const [cid, _] of Object.entries(this.cells))
       if (this.cells[cid].owner === pid) delete this.cells[cid];
+    // A pending buffer entry for a dead player would crash doTick's
+    // commit loop (its canonical cell is gone), so drop those too.
+    delete this.updates.players[pid];
+    for (const [cid, cell] of Object.entries(this.updates.cells))
+      if (cell.owner === pid) delete this.updates.cells[cid];
   };
 
   readonly snapshotFor = (you: PlayerId): GameSnapshot => ({
