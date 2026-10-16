@@ -118,10 +118,11 @@ export class GameRoom {
     }
     for (const cell of input.cells) {
       // NOTE: Calculating collisions will happen at the next tick.
-      const updated = this.cells[cell.id];
-      updated.pos = cell.pos;
+      this.updates.cells[cell.id] = this.cells[cell.id];
+      this.updates.cells[cell.id].pos = cell.pos;
     }
     this.PlayerSeqs[playerId] = input.seq;
+    // TODO: Handle splitting and ejection
   };
 
   // TODO: Implement auth
