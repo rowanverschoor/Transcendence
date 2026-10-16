@@ -91,6 +91,10 @@ export class GameRoom {
     this.updates.cells = {};
     this.updates.food = {};
     this.tick += 1;
+    // TODO: Handle collisions, cell growth
+    // NOTE: Remember to not process collisions and absorbtion based on insertion order.
+    // Use penetration depth instead.
+    // Don't be weird.
   }
 
   readonly processInput = (socket: Socket, input: PlayerInput) => {
@@ -127,6 +131,8 @@ export class GameRoom {
 
   // TODO: Implement auth
   // PlayerIds are visible to all players. Make sure players can't impersonate eachother
+  // NOTE: Might not actually be possible already, each player is associated with a websocket
+  // Need to check socket.io docs to see if clients can connect to other client's websocket
   readonly addPlayer = (client: Socket, meta: PlayerMeta): PlayerId | null => {
     if (Object.keys(this.players).length >= this.capacity) return null;
     let id: PlayerId = nanoid(5);
