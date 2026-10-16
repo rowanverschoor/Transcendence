@@ -30,6 +30,9 @@ const makeFood = (cfg: GameConfig): Food => {
   };
 };
 
+const tickRate_Hz: number = 20; // NOTE: Add to config?
+const tickPeriod_ms: number = 1000 / tickRate_Hz;
+
 export class GameRoom {
   readonly socket: Server;
   readonly clients: Record<PlayerId, Socket> = {};
@@ -40,8 +43,6 @@ export class GameRoom {
   readonly cells: Record<CellId, CellState> = {};
   readonly food: Record<FoodId, Food> = {};
 
-  readonly tickRate_Hz: number = 20; // NOTE: Add to config?
-  readonly tickPeriod_ms: number = 1000 / this.tickRate_Hz;
   private tick: number = 0;
 
   readonly updates: {
@@ -78,8 +79,7 @@ export class GameRoom {
   private nextCell = 0;
   newCellId = (): string => (this.nextCell++).toString();
 
-  @Interval(1000 / 20)
-  handleInterval() {
+  doTick() {
     for (const [id, update] of Object.entries(this.updates.cells))
       this.cells[id].pos = update.pos;
     for (const [_, socket] of Object.entries(this.clients))
@@ -104,7 +104,7 @@ export class GameRoom {
         // TODO: Scale maxVelocity based on cell radius
         if (
           distance(currentState.pos, newState.pos) >
-          this.tickPeriod_ms * this.config.maxVelocity
+          tickPeriod_ms * this.config.maxVelocity
         )
           return false;
       }
@@ -207,5 +207,10 @@ export class RoomRegistry {
 
   removeClient(socketId: Socket["id"]): void {
     for (const room of this.rooms.values()) room.removeClient(socketId);
+  }
+
+  @Interval(tickPeriod_ms)
+  tickAll(): void {
+    for (const room of this.rooms.values()) room.doTick();
   }
 }
