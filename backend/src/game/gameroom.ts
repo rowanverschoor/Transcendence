@@ -80,19 +80,17 @@ export class GameRoom {
 
   @Interval(1000 / 20)
   handleInterval() {
-    this.tick += 1;
     for (const [id, update] of Object.entries(this.updates.cells))
       this.cells[id].pos = update.pos;
     for (const [_, socket] of Object.entries(this.clients))
-      socket
-        .to(this.id)
-        .emit(
-          "message",
-          JSON.stringify(this.makeUpdate(this.clientIds[socket.id])),
-        );
+      socket.emit(
+        "message",
+        JSON.stringify(this.makeUpdate(this.clientIds[socket.id])),
+      );
     this.updates.players = {};
     this.updates.cells = {};
     this.updates.food = {};
+    this.tick += 1;
   }
 
   readonly processInput = (socket: Socket, input: PlayerInput) => {
