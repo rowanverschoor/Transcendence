@@ -136,6 +136,7 @@ export class GameGateway
         if (room === undefined)
           throw `Socket ${client.id} assigned to room unknown to room registry`;
         room.processInput(client, msg);
+        return;
       default:
         throw "Unhandled ClientMessage type received";
     }
