@@ -168,10 +168,10 @@ describe("GameGateway.handleMessage", () => {
     gateway.handleMessage(sender.socket, joinPayload());
     const snap = snapshots(sender.direct)[0];
     // addPlayer spawned exactly one owned cell. Move it well inside the
-    // max-velocity budget (tickPeriod_ms * maxVelocity = 50 units) so the
-    // server-side input validation accepts it.
+    // max-velocity budget ((tickPeriod_ms / 1000) * maxVelocity = 0.05s *
+    // 10 = 0.5 units per tick) so the server-side validation accepts it.
     const [cellId, cell] = Object.entries(snap.cells)[0];
-    const pos = { x: cell.pos.x + 1, y: cell.pos.y + 2 };
+    const pos = { x: cell.pos.x + 0.1, y: cell.pos.y + 0.1 };
     gateway.handleMessage(
       sender.socket,
       JSON.stringify({

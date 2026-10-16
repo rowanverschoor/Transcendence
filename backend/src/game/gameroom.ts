@@ -108,7 +108,7 @@ export class GameRoom {
         // TODO: Scale maxVelocity based on cell radius
         if (
           distance(currentState.pos, newState.pos) >
-          tickPeriod_ms * this.config.maxVelocity
+          (tickPeriod_ms / 1000) * this.config.maxVelocity
         )
           return false;
       }
