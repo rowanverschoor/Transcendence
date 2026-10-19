@@ -11,7 +11,7 @@
         <p class="error">Display name is required.</p>
       }
       @if (submitted() && displayNameInvalid()) {
-        <p class="error">Display name must be 3–20 characters.</p>
+        <p class="error">Display name must be 3–32 characters.</p>
       }
     </div>
 
@@ -37,7 +37,7 @@
         <p class="error">Password is required.</p>
       }
       @if (submitted() && passwordInvalid()) {
-        <p class="error">Password must be 8–20 characters.</p>
+        <p class="error">Password must be 8–64 characters.</p>
       }
     </div>
 

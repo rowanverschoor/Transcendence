@@ -82,17 +82,6 @@ export type CellId = z.infer<typeof CellId>;
 export const FoodId = z.string().min(1);
 export type FoodId = z.infer<typeof FoodId>;
 
-// --- Auth fields -------------------------------------------------------------
-
-export const DisplayName = z.string().trim().min(3).max(20);
-export type DisplayName = z.infer<typeof DisplayName>;
-
-export const Email = z.email();
-export type Email = z.infer<typeof Email>;
-
-export const Password = z.string().min(8).max(20);
-export type Password = z.infer<typeof Password>;
-
 // --- Client -> server --------------------------------------------------------
 
 export const JoinRequest = z.compile(

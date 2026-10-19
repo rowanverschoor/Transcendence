@@ -1,4 +1,4 @@
-import { DisplayName, Email, Password } from "@transcendence/shared";
+import { DisplayName, Email, Password } from "@transcendence/shared/auth";
 import { Component, computed, inject, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { AuthService } from "../../../core/auth.service";
