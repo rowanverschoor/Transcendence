@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-13.
+Owner: a0f. Last updated: 2026-10-19.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -28,7 +28,7 @@ Right now there is a frontend placeholder and a shared contract. The
 placeholder is login and register pages, and a fake `AuthService` that accepts
 any email with the password `password`. The contract in `shared/auth.ts`
 describes what register and login send and receive, and the frontend already
-uses its `User` type. Nothing talks to the backend yet.
+uses its `User` type and field rules. Nothing talks to the backend yet.
 
 ## Roadmap
 
@@ -42,7 +42,7 @@ a milestone are planned when we start it, not before.
   current user. No backend involved.
 - **Watch out:** nothing open.
 
-### 2. Shared auth contract (in review)
+### 2. Shared auth contract (done)
 - **Goal:** request and response types for register and login live in
   `shared/`, imported by both frontend and backend.
 - **Done when:** the contract is in `shared/` and the frontend compiles
@@ -51,18 +51,20 @@ a milestone are planned when we start it, not before.
 
 ### 3. Backend auth module
 - **Goal:** register and login endpoints in NestJS, password hashing, input
-  validation. Users are stored in memory behind a `UsersRepository` interface.
+  validation. Users and credentials are stored in memory behind abstract
+  repository classes, until the Drizzle versions replace them (milestone 6).
 - **Done when:** you can register and log in over HTTP, and wrong passwords
   and invalid input are rejected. Tests pass.
 - **Watch out:** keep the password hash out of the main user record, and keep
   "check the password" separate from "start a session". Both make OAuth
   easier to add later.
-- **PRs:** about 550 lines of code and tests, too much for one review, so it
-  is split by feature:
-  - **Before:** the `@Inject` check (its own PR, see Follow-ups) and the
-    contract changes in `shared/auth.ts` (its own PR).
-  - **3a. Register:** Vitest in the backend, the zod validation pipe, the
-    users store, password hashing and `POST /auth/register`. Sets the
+- **PRs:** too much for one review, so it is split:
+  - **Before:** the contract changes in `shared/auth.ts` (its own PR).
+  - **3.0. Repository classes:** the abstract `UsersRepository` and
+    `CredentialsRepository` and the duplicate errors. Small, and lets Ama
+    build the Drizzle versions against it.
+  - **3a. Register:** the in-memory repositories, password hashing and
+    `POST /auth/register`, using the zod pipe and Vitest from #15. Sets the
     pattern other endpoints will copy.
   - **3b. Login:** checking the password, the same answer and timing for
     unknown emails, and `POST /auth/login`.
@@ -72,8 +74,11 @@ a milestone are planned when we start it, not before.
   requests from anyone who isn't.
 - **Done when:** a protected endpoint works for a logged-in user and refuses
   everyone else. Logout works.
-- **Watch out:** cookies or JWT needs an ADR (Q4). Secure cookies need HTTPS,
-  which ties into the deployment setup.
+- **Watch out:** builds on the `express-session` setup from #15. Sessions
+  are kept in memory for now and lost on restart; where they are stored goes
+  in the login sessions ADR (Q4). Behind cloudflared the cookie needs
+  `proxy: true` (Mike is making an issue). Session code treats "no user" as
+  a normal case, so guests can be added later.
 
 ### 5. Frontend wiring
 - **Goal:** the fake `AuthService` is replaced by real HTTP calls, forms
@@ -82,15 +87,20 @@ a milestone are planned when we start it, not before.
 - **Watch out:** the subject requires validation on both frontend and backend.
 
 ### 6. Postgres swap
-- **Goal:** replace in-memory storage with Postgres.
+- **Goal:** the running backend uses Ama's Drizzle repositories instead of
+  the in-memory ones. The in-memory ones stay for tests.
 - **Done when:** users survive a backend restart.
-- **Watch out:** waits on DevOps (not before 2026-10-14) and on ADR 0009
-  (Postgres and ORM).
+- **Watch out:** waits on Ama's user and credentials functions. One shared
+  test suite runs against both versions, so they can't drift apart, for
+  example on case-insensitive display names.
 
 ### 7. Authenticated WebSockets
 - **Goal:** the game server knows which user each connection belongs to.
 - **Done when:** to be decided.
-- **Watch out:** touches the game code. Ownership is still open (Q8).
+- **Watch out:** touches the game code. Ownership is still open (Q8). The
+  game uses its own player id, mapped to a user, not user IDs directly, so
+  guests can be added later. Player names come from the account display
+  name, which changes ADR 0006.
 
 Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 
@@ -99,10 +109,25 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 - Login is email and password. OAuth is postponed, but we avoid choices that
   would block it. (2026-10-07)
 - Passwords are only stored as salted hashes. (subject requirement)
-- Until Postgres is running, users live in memory behind a `UsersRepository`
-  interface, so switching storage only touches one place. (2026-10-07)
-- The database will be PostgreSQL. Planned, to be made official in
-  ADR 0009 (Postgres + ORM; 0004 is the backend-framework record).
+- Storage sits behind abstract classes (`UsersRepository`,
+  `CredentialsRepository`). An abstract class and not a TypeScript
+  interface, because interfaces disappear when the code runs and NestJS
+  needs a real class to look up the implementation. The in-memory versions
+  are for tests, and for the running backend until the Drizzle versions
+  land. (2026-10-07, updated 2026-10-19)
+- The database is PostgreSQL with Drizzle. Planned, to be made official in
+  ADR 0009.
+- Ama writes the Drizzle versions of the user and credentials functions,
+  a0f writes auth on top. The user functions are `create`, `findByEmail`,
+  `findById` and `findByDisplayName`. Creating a user with a password is one
+  function, `createUserWithCredentials(user, passwordHash)`, in one database
+  transaction, so there is never a user without a password. A duplicate
+  email or display name throws an error that says which one, and register
+  turns it into a `409`. (2026-10-19)
+- Login sessions are cookie sessions with `express-session`, set up in #15.
+  Where they are stored is still open (Q4). (2026-10-19)
+- No guest players for now. Adding them later stays cheap as long as
+  milestones 4 and 7 follow their notes above. (2026-10-19)
 - Users have a display name that other players see, separate from the email
   they log in with. Display names are unique ignoring case, so `Sam` and `sam`
   can't both exist and nobody can pose as someone else by changing letter
@@ -127,20 +152,14 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   mostly lead to `Password1!` and block long passphrases. NIST asks for 15
   characters when the password is the only factor, we chose 8 because the app
   holds no sensitive data. (2026-10-08)
-- In the backend, every constructor parameter gets `@Inject(...)`, for
-  example `constructor(@Inject(AuthService) private auth: AuthService)`.
-  NestJS normally works out what to pass in from the parameter types, which
-  the TypeScript compiler saves as extra data (`emitDecoratorMetadata`). Our
-  backend runs with `tsx`, which strips types without saving that data, so
-  without `@Inject` the parameter is silently `undefined`. There is no error
-  at startup, only a crash when a request uses it. An automatic check finds
-  any missing `@Inject` (see Follow-ups), so this does not depend on people
-  remembering it. We looked at switching runners instead: the NestJS CLI with
-  SWC needs a build step for the backend and `shared/` and a Dockerfile
-  change, and `@swc-node/register` is smaller but adds a native dependency
-  to production and needs testing. That is a choice for whoever owns the
-  backend tooling, and code with `@Inject` keeps working after a switch.
-  (2026-10-08)
+- NestJS works out constructor dependencies from their types, using the
+  type information that `emitDecoratorMetadata` saves. Both our backend
+  runtime (`@swc-node/register`, since #15) and Vitest keep that information
+  (checked 2026-10-19), so we only write `@Inject(...)` when the dependency
+  is not a class, for example a string token like `GAME_CONFIG`. If the
+  backend ever moves to a runner that drops this information, such as
+  `tsx`, those dependencies silently become `undefined`. (2026-10-08,
+  updated 2026-10-19)
 - Passwords are hashed with scrypt, using Node's built-in `crypto.scrypt`,
   with a random salt per user. Hashing happens only in the backend, the
   frontend sends the password as typed over HTTPS. OWASP ranks Argon2id
@@ -149,11 +168,9 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   change or an extra package that needs a native build. scrypt needs
   neither, and scrypt is secure enough for this project. (2026-10-08)
 - Backend tests use Vitest, the same tool the frontend uses. It handles
-  TypeScript and ES modules without extra setup, and it translates code the
-  same way our backend runs, so a missing `@Inject` breaks in tests just like
-  it does for real (checked 2026-10-08). Jest, which the NestJS docs use,
-  needs extra setup, and with `ts-jest` the tests would pass even when an
-  `@Inject` is missing. (2026-10-08)
+  TypeScript and ES modules without extra setup, and keeps the same type
+  information as our runtime, so tests build NestJS classes the same way the
+  real backend does (checked 2026-10-19). (2026-10-08)
 - Error responses use the NestJS default shape, for example
   `{ "statusCode": 409, "message": "Email already in use", "error": "Conflict" }`.
   Invalid input (`400`) also gets an `errors` field with the problems per
@@ -205,24 +222,15 @@ Smaller things to handle in a specific milestone.
 - **Tell DevOps:** the backend Docker image uses Node 22, while mise gives
   everyone Node 26 locally. Code that works locally can fail in Docker.
 - **Team:** there is no CI yet, so checks and tests only run when someone
-  runs them by hand. Once there is CI, starting the backend is enough to run
-  the `@Inject` check.
-- **Before milestone 3, separate PR:** add a check at backend startup that
-  refuses to start when a backend class has a constructor parameter without
-  `@Inject`. It compares the number of constructor parameters with the
-  number of `@Inject` labels, for every controller and provider our own
-  modules list, so new features are covered without writing a test for
-  each. It is its own PR because it protects all backend code, not just
-  auth.
-- **Milestone 3:** tell Mike about the `@Inject` issue and the runner options
-  above, so the team knows the trap and can decide on a switch.
+  runs them by hand.
 
 ## Open questions
 
 Check this list before starting a milestone. When a question is answered,
 move it to Decisions (or an ADR) with the date.
 
-- **Q4. Sessions.** Server-side sessions with cookies, or JWTs? Needs an ADR.
-- **Q6. ORM.** Prisma or Drizzle? Decided together with DevOps in ADR 0004.
+- **Q4. Session storage.** Where are login sessions stored, so they survive
+  a restart? Goes in a login sessions ADR before milestone 4. ADR 0008
+  stays for game sessions and tournaments.
 - **Q7. Modules.** Are we doing OAuth and/or 2FA?
 - **Q8. Milestone 7.** Who owns authenticated WebSockets?
