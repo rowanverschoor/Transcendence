@@ -1,6 +1,5 @@
 import { Component, ElementRef, OnDestroy, AfterViewInit, viewChild, inject } from '@angular/core';
-import { GameSnapshot, ServerMessage } from '@transcendence/shared';
-import { Socket } from 'socket.io-client';
+import { ServerMessage } from '@transcendence/shared';
 import { PixiApp } from './render/pixi';
 import { GameSocket } from './gamesocket';
 
