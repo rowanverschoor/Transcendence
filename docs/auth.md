@@ -60,9 +60,10 @@ a milestone are planned when we start it, not before.
   easier to add later.
 - **PRs:** too much for one review, so it is split:
   - **Before:** the contract changes in `shared/auth.ts` (its own PR).
-  - **3.0. Repository classes:** the abstract `UsersRepository` and
-    `CredentialsRepository` and the duplicate errors. Small, and lets Ama
-    build the Drizzle versions against it.
+  - **3.0. Repository classes** (together with the doc update): the
+    abstract `UsersRepository` and `CredentialsRepository` and the
+    duplicate errors. Small, and lets Ama build the Drizzle versions
+    against it.
   - **3a. Register:** the in-memory repositories, password hashing and
     `POST /auth/register`, using the zod pipe and Vitest from #15. Sets the
     pattern other endpoints will copy.
@@ -114,7 +115,10 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   interface, because interfaces disappear when the code runs and NestJS
   needs a real class to look up the implementation. The in-memory versions
   are for tests, and for the running backend until the Drizzle versions
-  land. (2026-10-07, updated 2026-10-19)
+  land. `users` knows nothing about passwords or hashes; anything that
+  touches both lives in `auth/`. The stored password hash is one string
+  that includes the salt, so `credentials` needs only one column.
+  (2026-10-07, updated 2026-10-19)
 - The database is PostgreSQL with Drizzle. Planned, to be made official in
   ADR 0009.
 - Ama writes the Drizzle versions of the user and credentials functions,
