@@ -74,7 +74,7 @@ planned when we start it, not before.
 ### 6. Postgres swap
 - **Goal:** replace in-memory storage with Postgres.
 - **Done when:** users survive a backend restart.
-- **Watch out:** waits on DevOps (not before 2026-10-14) and on ADR 0004
+- **Watch out:** waits on DevOps (not before 2026-10-14) and on ADR 0009
   (Postgres and ORM).
 
 ### 7. Authenticated WebSockets
@@ -91,7 +91,8 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 - Passwords are only stored as salted hashes. (subject requirement)
 - Until Postgres is running, users live in memory behind a `UsersRepository`
   interface, so switching storage only touches one place. (2026-10-07)
-- The database will be PostgreSQL. Planned, to be made official in ADR 0004.
+- The database will be PostgreSQL. Planned, to be made official in
+  ADR 0009 (Postgres + ORM; 0004 is the backend-framework record).
 - Users have a display name that other players see, separate from the email
   they log in with. Display names are unique ignoring case, so `Sam` and `sam`
   can't both exist and nobody can pose as someone else by changing letter
