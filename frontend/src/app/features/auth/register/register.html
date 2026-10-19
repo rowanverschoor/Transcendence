@@ -1,36 +1,69 @@
-<h1>Create account</h1>
+<section class="auth-card">
+  <h1>Create account</h1>
 
-<form>
-  <div>
-    <label for="displayName">Display name</label>
-    <input id="displayName" name="displayName" autocomplete="nickname" />
-    <p>Display name is required.</p>
-    <p>Display name must be 3–20 characters.</p>
-  </div>
+  <form (submit)="onSubmit($event)" novalidate>
+    <div class="field">
+      <label for="displayName">Display name</label>
+      <input id="displayName" name="displayName" autocomplete="nickname"
+        [attr.aria-invalid]="submitted() && (!displayName() || displayNameInvalid())"
+        (input)="onInput('displayName', $event)" />
+      @if (submitted() && !displayName()) {
+        <p class="error">Display name is required.</p>
+      }
+      @if (submitted() && displayNameInvalid()) {
+        <p class="error">Display name must be 3–32 characters.</p>
+      }
+    </div>
 
-  <div>
-    <label for="email">Email</label>
-    <input id="email" name="email" type="email" autocomplete="username" />
-    <p>Email is required.</p>
-    <p>Enter a valid email address.</p>
-  </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email"
+        [attr.aria-invalid]="submitted() && (!email() || emailInvalid())"
+        (input)="onInput('email', $event)" />
+      @if (submitted() && !email()) {
+        <p class="error">Email is required.</p>
+      }
+      @if (submitted() && emailInvalid()) {
+        <p class="error">Enter a valid email address.</p>
+      }
+    </div>
 
-  <div>
-    <label for="password">Password</label>
-    <input id="password" type="password" autocomplete="new-password" />
-    <p>Password is required.</p>
-    <p>Password must be at least 8 characters.</p>
-  </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password"
+        [attr.aria-invalid]="submitted() && (!password() || passwordInvalid())"
+        (input)="onInput('password', $event)" />
+      @if (submitted() && !password()) {
+        <p class="error">Password is required.</p>
+      }
+      @if (submitted() && passwordInvalid()) {
+        <p class="error">Password must be 8–64 characters.</p>
+      }
+    </div>
 
-  <div>
-    <label for="confirmPassword">Confirm password</label>
-    <input id="confirmPassword" type="password" autocomplete="new-password" />
-    <p>Passwords do not match.</p>
-  </div>
+    <div class="field">
+      <label for="confirmPassword">Confirm password</label>
+      <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password"
+        [attr.aria-invalid]="submitted() && (!confirmPassword() || passwordMismatch())"
+        (input)="onInput('confirmPassword', $event)" />
+      @if (submitted() && !confirmPassword()) {
+        <p class="error">Please confirm your password.</p>
+      }
+      @if (submitted() && passwordMismatch()) {
+        <p class="error">Passwords do not match.</p>
+      }
+    </div>
 
-  <p role="alert">Server error message goes here (e.g. "Display name already taken").</p>
+    @if (serverError()) {
+      <p class="form-error" role="alert">{{ serverError() }}</p>
+    }
 
-  <button type="submit">Create account</button>
-</form>
+    <button type="submit" class="btn btn--primary">Create account</button>
+  </form>
+</section>
 
-<p>Already have an account? <a href="/login">Log in</a></p>
+<section class="auth-card auth-card--switch">
+  <h2>Already have an account?</h2>
+  <a routerLink="/login" class="btn btn--ghost">Log in</a>
+</section>
+

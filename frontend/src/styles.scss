@@ -1,18 +1,34 @@
+@use "mixins" as *;
 /* You can add global styles to this file, and also import other style files */
 
-// Palette F: Sakura dusk
 $palette: (
   "page": #2a2233,
   "surface": #362b42,
   "border": #4c3f5a,
   "text": #f2e6ea,
   "muted": #a999b2,
-  "primary": #f29ca3,
+  "primary": #9a709a,
   "on-primary": #2a2233,
   "secondary": #9bc7a4,
   "game": #362b42,
   "success": #b5d98f,
   "error": #e86f5f,
+);
+
+// find a way to change between palettes in user settings
+// or browser light/dark mode
+$palette2: (
+  "page": #ffffff,
+  "surface": #dbdbdb,
+  "border": #b0b0b0,
+  "text": #464444,
+  "muted": #6d6c6b,
+  "primary": #b4b0b4,
+  "on-primary": #474747,
+  "secondary": #bec0be,
+  "game": #d6d8da,
+  "success": #373836,
+  "error": #54504f,
 );
 
 :root {
@@ -47,4 +63,64 @@ body {
   * {
     transition: none !important;
   }
+}
+
+.btn {
+  font: 700 1rem var(--font-body);
+  padding: 0.7rem 1.6rem;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+
+  &--primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    &:hover { filter: brightness(1.06); }
+  }
+  &--ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+    &:hover { border-color: var(--muted); }
+    &.active { border-color: var(--secondary); color: var(--secondary); }
+  }
+}
+
+.field {
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  input {
+    width: 100%;
+    font: 600 1rem var(--font-body);
+    color: var(--text);
+    background: var(--page);
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    padding: 0.7rem 1.2rem;
+    &:focus-visible { outline: none; border-color: var(--secondary); }
+    &[aria-invalid="true"] { border-color: var(--error); }
+  }
+}
+
+.form-error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 16px 20px 14px 18px;
+  border: 2px solid currentColor;
+  font-weight: 700;
+  color: var(--error);
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
 }
