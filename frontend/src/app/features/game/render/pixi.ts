@@ -25,10 +25,28 @@ export class PixiApp {
 	private sink!: InputSink;
 	private sinceLastSend = 0;
 	private makeInput = SequencedFactoryFactory(0, PlayerInput);
+	private pendingSplit : boolean = false;
+	private pendingEject : boolean = false;
 
 	private foodLayer = new Container();
 	private cellLayer = new Container();
 
+	private keyDown = (e: KeyboardEvent): void => {
+		if (e.repeat)
+			return ;
+		const t = e.target as HTMLElement | null;
+		if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))
+			return ;
+		switch (e.code) {
+			case 'Space':
+				e.preventDefault();
+				this.pendingSplit = true;
+				break;
+			case 'KeyW':
+				this.pendingEject = true;
+				break;
+		}
+	}
 
 	private getCellGraphic(id: CellId): Graphics {
 		let g = this.cellGraphics[id];
@@ -60,6 +78,7 @@ export class PixiApp {
 		host.appendChild(engine.app.canvas);
 		engine.app.stage.addChild(engine.foodLayer, engine.cellLayer);
 		engine.startTicking();
+		window.addEventListener('keydown', engine.keyDown);
 		return engine;
 	}
 
@@ -76,9 +95,11 @@ export class PixiApp {
 				this.sinceLastSend -= 50;
 				this.sink.send(this.makeInput({
 					mousepos: { x: mousePos.x, y: mousePos.y },
-					split: undefined,
-					eject: undefined,
+					split: this.pendingSplit,
+					eject: this.pendingEject,
 				}));
+				this.pendingEject = false;
+				this.pendingSplit = false;
 			}
 			for (const [id, cell] of Object.entries(this.cells))
 			{
@@ -175,6 +196,7 @@ export class PixiApp {
 		this.cells = {};
 		this.food = {};
 		this.players = {};
+		window.removeEventListener('keydown', this.keyDown);
 	}
 }
 
