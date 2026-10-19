@@ -42,3 +42,12 @@ jobs:
 
       - name: Test ${{ matrix.workspace }}
         run: ${{ matrix.test }}
+
+      - name: Coverage (backend)
+        if: matrix.workspace == 'backend'
+        run: |
+          npm run coverage -w backend
+          echo "### Backend coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat backend/coverage/coverage.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
