@@ -2,8 +2,6 @@ import { Application, Point, Rectangle, Graphics, Container } from 'pixi.js';
 import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot, ClientMessage, SequencedFactoryFactory, PlayerInput } from "@transcendence/shared/protocol";
 import 'pixi.js/math-extras';
 
-const MAX_RADIUS = 200;
-
 function cssColor(name: string): string {
 	return getComputedStyle(document.documentElement)
 		.getPropertyValue(`--${name}`)
@@ -169,7 +167,6 @@ export class PixiApp {
 	}
 
 	destroy(): void {
-		console.log("PIXI DESTROYED");
 		if (this.destroyed) return ;
 		this.destroyed = true;
 		this.app.destroy(true, { children: true });
