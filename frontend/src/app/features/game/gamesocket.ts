@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from "@angular/core";
-import { ClientMessage, JoinRequest, ServerMessage } from "@transcendence/shared";
+import { ClientMessage, JoinRequest, PlayerMeta, ServerMessage } from "@transcendence/shared";
 import { DisconnectDescription, io, Socket } from "socket.io-client";
 
 
@@ -14,10 +14,13 @@ export class GameSocket implements OnDestroy {
 		socket.on("connect", (): void => {
 			console.log("connected");
 			let jr: JoinRequest;
+			// TEMP: Temporary player meta for testing purposes.
+			// TODO: Fetch information from user account
+			const pmeta: PlayerMeta  = {color: "#f38e09", name: "Player"};
 			if (this.roomId)
-				jr = {type: "join", roomId: this.roomId};
+				jr = {meta: pmeta, type: "join", roomId: this.roomId};
 			else
-				jr = {type: "join"};
+				jr = {meta: pmeta, type: "join"};
 			socket.send(jr);
 		});
 

@@ -91,6 +91,8 @@ export class PixiApp {
 			const mousePos = app.renderer.events.pointer.global;
 
 			this.sinceLastSend += time.deltaMS;
+			// TEMP?: In the PR19 draft ClientMessage takes cells changed instead of mousepos, adjustments have been made for the next PR
+			// following if statement has been moved to the bottom of the ticker so I can collect all changed cell and send them over
 			if (this.sinceLastSend >= 50) {
 				this.sinceLastSend -= 50;
 				this.sink.send(this.makeInput({
