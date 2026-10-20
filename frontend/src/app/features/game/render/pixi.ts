@@ -1,4 +1,4 @@
-import { Application, Point, Rectangle, Graphics, Container } from 'pixi.js';
+import { Application, Point, Graphics, Container } from 'pixi.js';
 import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot, ClientMessage, SequencedFactoryFactory, PlayerInput } from "@transcendence/shared/protocol";
 import 'pixi.js/math-extras';
 
@@ -15,7 +15,6 @@ export interface InputSink {
 export class PixiApp {
 	private destroyed = false;
 	readonly app = new Application();
-	//private cam = new Rectangle();
 	private cells: Record<CellId, CellState> = {};
 	private players: Record<PlayerId, PlayerMeta> = {};
 	private food: Record<FoodId, Food> = {};
