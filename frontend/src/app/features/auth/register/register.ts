@@ -26,6 +26,8 @@ export class Register {
       this[field].set(value);
     }
 
+    // TEMP: hand-written validation, errors only show after submit.
+    // Milestone 5 looks at Signal Forms (docs/auth.md).
     protected displayNameError = computed(() => {
       const name = this.displayName();
       if (name.length === 0) return "Please enter a display name";
@@ -73,5 +75,7 @@ export class Register {
     if (this.confirmPasswordError()) {
       return;
     }
+
+    // TEMP: nothing is sent yet, the real AuthService call comes in milestone 5.
   }
 }
