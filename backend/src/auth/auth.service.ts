@@ -20,6 +20,9 @@ export class AuthService {
       await this.credentials.createUserWithCredentials(user, passwordHash);
     } catch (err) {
       if (err instanceof DuplicateEmailError || err instanceof DuplicateDisplayNameError) {
+        // TEMP: "Email already in use" tells anyone which emails have an account.
+        // Once we send verification emails, register always answers "check your
+        // email" instead to prevent phising attacks (docs/auth.md, Q7)
         throw new ConflictException(err.message);
       }
       throw err;

@@ -8,7 +8,6 @@ import { z } from "zod";
  * form can show each message next to the right input (docs/auth.md).
  * WebSocket messages use ZodValidationPipe instead.
  */
-
 @Injectable()
 export class ZodBodyPipe<T extends z.ZodType> implements PipeTransform<unknown, z.output<T>> {
   constructor(private readonly schema: T) {}

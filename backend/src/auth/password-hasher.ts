@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { randomBytes, scrypt } from "node:crypto";
 
-// OWASP's low-memory scrypt setting: about 16 MiB and 160 ms per hash.
-// main implication: if db gets stolen, how much effort to crack it?
+// One of OWASP's recommended scrypt settings: about 16 MiB and 120 ms per hash.
+// The cost is what slows down guessing if the database is ever stolen.
 const COST = 16384; // N, must be a power of two
-const BLOCK_SIZE = 8; // r, size of each entry into table (128x16384x8 = 16MiB)
-const PARALLELISM = 5; // p, times process runs (independent runs affect time, not memory)
+const BLOCK_SIZE = 8; // r, memory is 128 * N * r = 16 MiB
+const PARALLELISM = 5; // p, independent runs: costs time, not memory
 const SALT_BYTES = 16;
 const HASH_BYTES = 64;
 

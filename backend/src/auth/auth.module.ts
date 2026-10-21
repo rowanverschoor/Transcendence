@@ -10,9 +10,10 @@ import { PasswordHasher } from "./password-hasher.js";
   imports: [UsersModule],
   controllers: [AuthController],
   providers: [
+    // TEMP: in-memory until the Drizzle repositories land (milestone 6).
     { provide: CredentialsRepository, useClass: InMemoryCredentialsRepository },
     PasswordHasher,
     AuthService,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

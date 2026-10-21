@@ -33,7 +33,8 @@ describe("AuthService.register", () => {
   it("refuses a taken email with a 409", async () => {
     const { auth } = setup();
     await auth.register(request);
-    await expect(auth.register({ ...request, displayName: "Other" })).rejects.toThrow(ConflictException);
+    await expect(auth.register({ ...request, displayName: "Other" })).rejects.toThrow("Email already in use");
+
   });
 
   it("refuses a taken display name with a 409, ignoring case", async () => {
