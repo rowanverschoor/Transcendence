@@ -1,18 +1,33 @@
 import { z } from "zod";
+import { COMMON_PASSWORDS } from "./common-passwords";
 
 // ---------------------------------------------------------------------------
 // Auth contract: what crosses the wire for register and login.
 //
 // Only rules that are already decided in docs/auth.md are encoded here.
-// Email and password rules tighten in auth milestone 3.
 // ---------------------------------------------------------------------------
 
 export const UserId = z.uuidv4();
 
 // Single fields, exported so a form can check one field at a time.
-export const Email = z.email();
-export const DisplayName = z.string().trim().min(3).max(32);
-export const Password = z.string().min(8).max(64);
+export const Email = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email("Enter a valid email address"));
+
+export const DisplayName = z
+  .string()
+  .trim()
+  .min(3, "Display name must be at least 3 characters")
+  .max(32, "Display name can be at most 32 characters")
+  .regex(/^[A-Za-z0-9_]+$/, "Only letters, numbers and _ are allowed");
+
+export const Password = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(64, "Password can be at most 64 characters")
+  .refine((password) => !COMMON_PASSWORDS.has(password.toLowerCase()), "This password is too common");
 
 // --- Client -> server --------------------------------------------------------
 
