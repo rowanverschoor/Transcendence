@@ -1,4 +1,3 @@
-import { ConflictException } from "@nestjs/common";
 import { User } from "@transcendence/shared/auth";
 import { describe, expect, it } from "vitest";
 import { InMemoryUsersRepository } from "../users/in-memory-users.repository.js";
