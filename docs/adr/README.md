@@ -11,7 +11,7 @@ reverse. Read these before changing anything they touch.
 | [0002](./0002-use-server-authoritative-websocket-sync.md) | Use server-authoritative synchronization over WebSocket | Proposed |
 | [0004](./0004-use-nestjs-for-the-backend.md) | Use NestJS for the backend | Accepted (retroactive) |
 | [0005](./0005-choose-socket-io-for-websockets.md) | Choose Socket.IO for the WebSocket layer | Accepted (retroactive) |
-| [0006](./0006-take-player-metas-from-the-join-request.md) | Take player colors and names from the join request, verbatim | Proposed |
+| [0006](./0006-take-player-metas-from-the-join-request.md) | Take player colors and names from the join request, verbatim | Rejected |
 
 0003 was withdrawn before acceptance: the product pivoted from a
 WarioWare-style microgame collection to a single agar.io clone, so

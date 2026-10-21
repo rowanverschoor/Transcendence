@@ -101,7 +101,7 @@ a milestone are planned when we start it, not before.
 - **Watch out:** touches the game code. Ownership is still open (Q8). The
   game uses its own player id, mapped to a user, not user IDs directly, so
   guests can be added later. Player names come from the account display
-  name, which changes ADR 0006.
+  name, which is why ADR 0006 was rejected.
 
 Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 
