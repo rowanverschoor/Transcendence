@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COMMON_PASSWORDS } from "./common-passwords";
+import { COMMON_PASSWORDS } from "./common-passwords.js";
 
 // ---------------------------------------------------------------------------
 // Auth contract: what crosses the wire for register and login.
