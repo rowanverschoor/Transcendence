@@ -27,6 +27,8 @@ Not yet written; each is gated on an input that doesn't exist yet:
 - **0007 — choose-frontend-rendering-stack** (Angular is in, pixi.js is in code — record the game-rendering choice once the first arena renders)
 - **0008 — choose-session-and-tournament-model** (before the tournament/statistics modules)
 - **0009 — use-postgresql-with-an-orm** (after the database spike; ORM choice: Prisma / Drizzle; renumbered from the drafted 0006, which this branch claims for the player-metas record)
+- **0010 — map-game-players-to-user-accounts** (with auth milestone 7; replaces the name half of rejected 0006)
+- **player colors** (number TBD; the color half of rejected 0006 is currently unrecorded, the code still takes color from the join)
 
 ## Conventions
 
