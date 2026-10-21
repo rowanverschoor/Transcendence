@@ -6,6 +6,9 @@ Proposed — 2026-10-09. Proposer: mifelida.
 Follows the color-ownership discussion of 2026-10-09 (working session).
 Acceptance criteria: full team has read it and no unresolved pushback
 remains.
+Rejected — 2026-10-21. Player names will come from the account
+display name once games are authenticated (auth milestone 7,
+`docs/auth.md`), so the client can no longer pick its own name.
 
 ## Context
 
