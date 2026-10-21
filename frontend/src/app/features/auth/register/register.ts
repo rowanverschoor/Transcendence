@@ -26,24 +26,31 @@ export class Register {
       this[field].set(value);
     }
 
-    protected displayNameInvalid = computed(() => {
+    protected displayNameError = computed(() => {
       const name = this.displayName();
-      return name.length > 0 && !DisplayName.safeParse(name).success;
+      if (name.length === 0) return "Please enter a display name";
+      const result = DisplayName.safeParse(name);
+      return result.success ? "" : result.error.issues[0].message;
     });
 
-    protected emailInvalid = computed(() => {
-      const email = this.email().trim();
-      return email.length > 0 && !Email.safeParse(email).success;
+    protected emailError = computed(() => {
+      const email = this.email();
+      if (email.length === 0) return "Please enter your email";
+      const result = Email.safeParse(email);
+      return result.success ? "" : result.error.issues[0].message;
     });
 
-    protected passwordInvalid = computed(() => {
+    protected passwordError = computed(() => {
       const pass = this.password();
-      return pass.length > 0 && !Password.safeParse(pass).success;
+      if (pass.length === 0) return "Please enter a password";
+      const result = Password.safeParse(pass);
+      return result.success ? "" : result.error.issues[0].message;
     });
 
-    protected passwordMismatch = computed(() => {
+    protected confirmPasswordError = computed(() => {
       const confirm = this.confirmPassword();
-      return confirm.length > 0 && confirm !== this.password();
+      if (confirm.length === 0) return "Please confirm your password";
+      return confirm === this.password() ? "" : "Passwords do not match";
     });
 
     protected async onSubmit(event: Event): Promise<void> {
@@ -51,19 +58,19 @@ export class Register {
       this.submitted.set(true);
       this.serverError.set("");
 
-    if (!this.displayName() || this.displayNameInvalid()) {
+    if (this.displayNameError()) {
       return;
     }
 
-    if (!this.email() || this.emailInvalid()) {
+    if (this.emailError()) {
       return;
     }
 
-    if (!this.password() || this.passwordInvalid()) {
+    if (this.passwordError()) {
       return;
     }
 
-    if (!this.confirmPassword() || this.passwordMismatch()) {
+    if (this.confirmPasswordError()) {
       return;
     }
   }

@@ -5,52 +5,40 @@
     <div class="field">
       <label for="displayName">Display name</label>
       <input id="displayName" name="displayName" autocomplete="nickname"
-        [attr.aria-invalid]="submitted() && (!displayName() || displayNameInvalid())"
+        [attr.aria-invalid]="submitted() && !!displayNameError()"
         (input)="onInput('displayName', $event)" />
-      @if (submitted() && !displayName()) {
-        <p class="error">Display name is required.</p>
-      }
-      @if (submitted() && displayNameInvalid()) {
-        <p class="error">Display name must be 3–32 characters.</p>
+      @if (submitted() && displayNameError()) {
+        <p class="error">{{ displayNameError() }}</p>
       }
     </div>
 
     <div class="field">
       <label for="email">Email</label>
       <input id="email" name="email" type="email" autocomplete="email"
-        [attr.aria-invalid]="submitted() && (!email() || emailInvalid())"
+        [attr.aria-invalid]="submitted() && !!emailError()"
         (input)="onInput('email', $event)" />
-      @if (submitted() && !email()) {
-        <p class="error">Email is required.</p>
-      }
-      @if (submitted() && emailInvalid()) {
-        <p class="error">Enter a valid email address.</p>
+      @if (submitted() && emailError()) {
+        <p class="error">{{ emailError() }}</p>
       }
     </div>
 
     <div class="field">
       <label for="password">Password</label>
       <input id="password" name="password" type="password" autocomplete="new-password"
-        [attr.aria-invalid]="submitted() && (!password() || passwordInvalid())"
+        [attr.aria-invalid]="submitted() && !!passwordError()"
         (input)="onInput('password', $event)" />
-      @if (submitted() && !password()) {
-        <p class="error">Password is required.</p>
-      }
-      @if (submitted() && passwordInvalid()) {
-        <p class="error">Password must be 8–64 characters.</p>
+      @if (submitted() && passwordError()) {
+        <p class="error">{{ passwordError() }}</p>
       }
     </div>
 
     <div class="field">
       <label for="confirmPassword">Confirm password</label>
       <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password"
-        [attr.aria-invalid]="submitted() && (!confirmPassword() || passwordMismatch())"
+        [attr.aria-invalid]="submitted() && !!confirmPasswordError()"
         (input)="onInput('confirmPassword', $event)" />
-      @if (submitted() && !confirmPassword()) {
-        <p class="error">Please confirm your password.</p>
-      }
-      @if (submitted() && passwordMismatch()) {
-        <p class="error">Passwords do not match.</p>
+      @if (submitted() && confirmPasswordError()) {
+        <p class="error">{{ confirmPasswordError() }}</p>
       }
     </div>
 
