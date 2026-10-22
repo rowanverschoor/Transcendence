@@ -21,6 +21,26 @@ services:
         - ".env"
     environment:
       NODE_ENV: "development"
+      DATABASE_URL: postgres://transcendence:transcendence@db:5432/transcendence
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: transcendence
+      POSTGRES_PASSWORD: transcendence
+      POSTGRES_DB: transcendence
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/01-create-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transcendence -d transcendence"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
@@ -33,3 +53,6 @@ services:
       - "4200:4200"
     depends_on:
       - backend
+
+volumes:
+  db_data:

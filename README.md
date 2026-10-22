@@ -14,6 +14,27 @@ We can benchmark latency by adding a timestamp to all communications later.
 A node backend that can accept websocket connections.
 Each client gets it own connection.
 When the backend receives a `MOUSEPOS` message the message is broadcasted.
+#### backend database tests:
+
+Start the dev database:
+```sh
+docker compose -f docker-compose.dev.yml up -d db
+```
+
+the init script creates `transcendence_test` automatically for a fresh `db_data` volume. If your volume already existed before the script was added, create the test database once:
+
+```sh
+docker compose -f docker-compose.dev.yml exec db createdb -U transcendence transcendence_test
+```
+
+run the repository tests from `backend/`:
+
+```sh
+TEST_DATABASE_URL=postgres://transcendence:transcendence@localhost:5433/transcendence_test npx vitest run src/db/drizzle-repositories.spec.ts
+```
+
+The tests truncate the test database between cases, so keep `TEST_DATABASE_URL` pointed at `transcendence_test`, not the development database.
+
 
 ### Frontend
 

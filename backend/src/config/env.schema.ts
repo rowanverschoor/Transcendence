@@ -23,6 +23,7 @@ const envSchema = z
     NODE_ENV: z.enum(["development", "production"]).default("production"),
     PORT: z.coerce.number().int().min(1).max(65535).default(8080),
     SESSION_SECRET: z.string().min(1).default(DEV_SESSION_SECRET_PLACEHOLDER),
+    DATABASE_URL: z.url().optional(),
     ROOM_CAPACITY: z.coerce.number().int().min(2).max(200).default(10),
     ARENA_WIDTH: z.coerce.number().int().min(100).max(4000).default(800),
     ARENA_HEIGHT: z.coerce.number().int().min(100).max(4000).default(800),
