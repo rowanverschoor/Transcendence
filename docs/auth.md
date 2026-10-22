@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-19.
+Owner: a0f. Last updated: 2026-10-21.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -59,7 +59,7 @@ a milestone are planned when we start it, not before.
   "check the password" separate from "start a session". Both make OAuth
   easier to add later.
 - **PRs:** too much for one review, so it is split:
-  - **Before:** the contract changes in `shared/auth.ts` (its own PR).
+  - **Before (done):** the contract changes in `shared/auth.ts` (its own PR).
   - **3.0. Repository classes** (together with the doc update): the
     abstract `UsersRepository` and `CredentialsRepository` and the
     duplicate errors. Small, and lets Ama build the Drizzle versions
@@ -86,6 +86,10 @@ a milestone are planned when we start it, not before.
   validate their input, and pages that need a login are guarded.
 - **Done when:** the whole flow works in the browser against the real backend.
 - **Watch out:** the subject requires validation on both frontend and backend.
+  Look at Angular Signal Forms for the forms: they can use the zod schemas
+  directly (`validateStandardSchema`) and track per field whether it was
+  touched, so errors can show when you leave a field instead of only after
+  submit. Check that it is out of experimental first.
 
 ### 6. Postgres swap
 - **Goal:** the running backend uses Ama's Drizzle repositories instead of
@@ -146,7 +150,10 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   class-validator. (2026-10-07)
 - Display names are 3 to 32 characters. Spaces at the start and end are
   removed before the length is checked, so `Sam` and `Sam ` can't both exist.
-  (2026-10-07, trimming since 2026-10-13)
+  Only `A-Z`, `a-z`, `0-9` and `_` are allowed. Uppercase stays because names
+  are shown as typed. Unicode has look-alike letters, such as a Cyrillic `а`
+  that looks exactly like a Latin `a`, which would get around the case rule.
+  (2026-10-07, trimming since 2026-10-13, characters since 2026-10-21)
 - Register requires a password of at least 8 characters. Login only requires
   a non-empty password. The length rule applies when a password is chosen, so
   if the rules get stricter later, older passwords still work. (2026-10-07)
@@ -156,6 +163,17 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   mostly lead to `Password1!` and block long passphrases. NIST asks for 15
   characters when the password is the only factor, we chose 8 because the app
   holds no sensitive data. (2026-10-08)
+- The common passwords check sits on the `Password` schema, so the register
+  form catches them while you type. Login does not use `Password`, so older
+  passwords keep working. The list is `shared/common-passwords.ts`: the 1000
+  most common passwords of 8 to 64 characters from SecLists
+  (`10k-most-common.txt`, MIT), compared lowercased. It ends up in the
+  browser, which is why it stays short. The maximum of 64 also stops someone
+  from sending a huge password to make hashing slow on purpose. (2026-10-21)
+- Every rule in `shared/auth.ts` has a message a player can read, and the
+  forms show that message instead of their own text, so the rules and the
+  messages can't drift apart. The backend sends the same messages back for
+  invalid input. (2026-10-21)
 - NestJS works out constructor dependencies from their types, using the
   type information that `emitDecoratorMetadata` saves. Both our backend
   runtime (`@swc-node/register`, since #15) and Vitest keep that information
@@ -206,21 +224,9 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 
 Smaller things to handle in a specific milestone.
 
-- **Milestone 3:** limit display names to `A-Z`, `a-z`, `0-9` and `_`.
-  Uppercase stays allowed because names are shown as typed. Unicode has
-  look-alike letters, such as a Cyrillic `а` that looks exactly like a Latin
-  `a`, which would get around the case rule.
 - **Milestone 3:** when a login uses an unknown email, still run scrypt once
   on a dummy value, so it takes as long as a wrong password. Otherwise the
   response time gives away which emails exist.
-- **Milestone 3:** make the `Email` schema trim and lowercase.
-- **Milestone 3:** add the list of common passwords to `RegisterRequest`.
-  The password maximum of 64 is already in the contract (2026-10-13),
-  because the register form needed it. The maximum also stops someone from
-  sending a huge password to make hashing slow on purpose. Use about the
-  1000 most common passwords: the list is in `shared/`, so it ends up in the
-  browser once the frontend validates forms, and a much longer list would
-  make every page load heavier.
 - **Milestone 3:** compare hashes with `crypto.timingSafeEqual`, not `==`,
   so the time a comparison takes does not leak how much of a hash matched.
 - **Tell DevOps:** the backend Docker image uses Node 22, while mise gives
