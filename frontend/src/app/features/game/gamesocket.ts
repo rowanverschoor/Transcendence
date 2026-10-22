@@ -15,9 +15,9 @@ export class GameSocket implements OnDestroy {
 			console.log("connected");
 			let jr: JoinRequest;
 			if (this.roomId)
-				jr = {type: "join", roomId: this.roomId};
+				jr = { meta: {color: "#ee8d0f", name: "yolo"}, type: "join", roomId: this.roomId};
 			else
-				jr = {type: "join"};
+				jr = { meta: {color: "#ee8d0f", name: "yolo"}, type: "join"};
 			socket.send(jr);
 		});
 

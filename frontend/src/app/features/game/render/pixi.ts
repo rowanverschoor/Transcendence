@@ -89,18 +89,9 @@ export class PixiApp {
 		app.ticker.add((time) => {
 			if (this.destroyed) return;
 			const mousePos = app.renderer.events.pointer.global;
-
 			this.sinceLastSend += time.deltaMS;
-			if (this.sinceLastSend >= 50) {
-				this.sinceLastSend -= 50;
-				this.sink.send(this.makeInput({
-					mousepos: { x: mousePos.x, y: mousePos.y },
-					split: this.pendingSplit,
-					eject: this.pendingEject,
-				}));
-				this.pendingEject = false;
-				this.pendingSplit = false;
-			}
+
+			let changedCells: PlayerInput["cells"] = [];
 			for (const [id, cell] of Object.entries(this.cells))
 			{
 				if (cell.owner === this.id)
@@ -123,6 +114,7 @@ export class PixiApp {
 						cellWorldPos = CoordToPoint(otherCell.pos).add(dir.multiplyScalar(cell.radius + otherCell.radius));
 					}
 					cell.pos = PointToCoord(cellWorldPos);
+					changedCells.push({ id, pos: { x: cell.pos.x, y: cell.pos.y } });
 				}
 				const graph = this.getCellGraphic(id);
 				graph.position.set(cell.pos.x, cell.pos.y);
@@ -135,6 +127,16 @@ export class PixiApp {
 				const graph = this.getFoodGraphic(id);
 				graph.position.set(f.pos.x, f.pos.y);
 				graph.scale.set(f.radius);
+			}
+			if (this.sinceLastSend >= 50) {
+				this.sinceLastSend -= 50;
+				this.sink.send(this.makeInput({
+					cells: changedCells,
+					split: this.pendingSplit,
+					eject: this.pendingEject,
+				}));
+				this.pendingEject = false;
+				this.pendingSplit = false;
 			}
 		});
 	}
@@ -182,6 +184,7 @@ export class PixiApp {
 	}
 
 		this.id = snap.you;
+		console.log("id: ", this.id);
 		this.cells = structuredClone(snap.cells);
 		this.players = snap.players;
 		this.food = structuredClone(snap.food);

@@ -118,7 +118,7 @@ export class GameRoom {
       // TODO: Decide if and when we kick players emiting invalid input
       // Also ban and doxx them, sell data on darkweb, blame hackers
       console.log(`Player ${this.clientIds[socket.id]} sent invalid input`);
-      return;
+    //   return;
     }
     for (const cell of input.cells) {
       // Copy with the new pos: this.cells keeps the last-tick pos so the
