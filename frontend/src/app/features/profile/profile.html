@@ -1,1 +1,6 @@
-<p>profile works!</p>
+@if (auth.currentUser(); as user) {
+  <h1>{{ user.displayName }}</h1>
+  <p>id: {{ user.id }}</p>
+} @else {
+  <p>You are not logged in. <a routerLink="/login">Log in</a></p>
+}
