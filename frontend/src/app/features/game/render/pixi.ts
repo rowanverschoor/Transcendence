@@ -1,5 +1,5 @@
 import { Application, Point, Graphics, Container } from 'pixi.js';
-import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot, ClientMessage, SequencedFactoryFactory, PlayerInput } from "@transcendence/shared/protocol";
+import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot, ClientMessage, SequencedFactoryFactory, PlayerInput, ArenaConfig } from "@transcendence/shared/protocol";
 import 'pixi.js/math-extras';
 
 function cssColor(name: string): string {
@@ -15,6 +15,7 @@ export interface InputSink {
 export class PixiApp {
 	private destroyed = false;
 	readonly app = new Application();
+	private arena: ArenaConfig = {width: 0, height: 0};
 	private cells: Record<CellId, CellState> = {};
 	private players: Record<PlayerId, PlayerMeta> = {};
 	private food: Record<FoodId, Food> = {};
@@ -50,7 +51,7 @@ export class PixiApp {
 	private getCellGraphic(id: CellId): Graphics {
 		let g = this.cellGraphics[id];
 		if (!g) {
-			g = new Graphics().circle(0, 0, 1).fill('#ffffff');
+			g = new Graphics();
 			this.cellLayer.addChild(g);
 			this.cellGraphics[id] = g;
 		}
@@ -79,6 +80,59 @@ export class PixiApp {
 		engine.startTicking();
 		window.addEventListener('keydown', engine.keyDown);
 		return engine;
+	}
+
+	private isBlocked(pos: Point, id: CellId): boolean {
+		if (pos.x <= 0 || pos.x >= this.arena.width ||
+			pos.y <= 0 || pos.y >= this.arena.height)
+			return (true);
+
+		for (const [otherId, otherCell] of Object.entries(this.cells)) {
+			if (id === otherId) continue;
+			let offset = pos.subtract(CoordToPoint(otherCell.pos));
+			if (offset.magnitude() < otherCell.radius)
+				return (true);
+		}
+		return (false);
+	}
+
+	private updateCell(cell: Graphics, radius: number, id: CellId) {
+		const segments = 16;
+		let points : Point[] = [];
+
+		cell.clear();
+
+		for (let i = 0; i < segments; i++) {
+			const angle = (i / segments) * 2 * Math.PI;
+			const dirX = Math.sin(angle);
+			const dirY = -Math.cos(angle);
+
+			const CONTACT_OVERLAP = 3;
+
+			let hitDist = radius;
+			for (let d = 1; d <= radius; d += 1) {
+				const pos = new Point(
+					cell.position.x + dirX * d,
+					cell.position.y + dirY * d,
+				);
+				if (this.isBlocked(pos, id)) {
+					hitDist = Math.min(d + CONTACT_OVERLAP, radius);
+					break;
+				}
+			}
+			points.push(new Point(dirX * hitDist, dirY * hitDist));
+		}
+
+		const mid = (a: Point, b: Point) => new Point((a.x + b.x) / 2, (a.y + b.y) / 2);
+		const start = mid(points[segments - 1], points[0]);
+		cell.moveTo(start.x, start.y);
+		for (let i = 0; i < segments; i++) {
+			const next = points[(i + 1) % segments];
+			const m = mid(points[i], next);
+			cell.quadraticCurveTo(points[i].x, points[i].y, m.x, m.y);
+		}
+		cell.closePath();
+		cell.fill('#ffffff');
 	}
 
 	private constructor() {}
@@ -114,22 +168,23 @@ export class PixiApp {
 					cellWorldPos = cellWorldPos.add(vel);
 					// The following collision should eventually only work on friendly cells // they might still need some distortion
 					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
-					for (const [otherId, otherCell] of Object.entries(this.cells)) {
-						if (id === otherId) continue;
-						let offset = cellWorldPos.subtract(CoordToPoint(otherCell.pos));
-						let dist = offset.magnitude();
-						if (dist >= cell.radius + otherCell.radius)
-							continue;
-						const dir = dist < 1e-6 ? new Point(1, 0) : offset.multiplyScalar(1 / dist);
-						cellWorldPos = CoordToPoint(otherCell.pos).add(dir.multiplyScalar(cell.radius + otherCell.radius));
-					}
+					//for (const [otherId, otherCell] of Object.entries(this.cells)) {
+					//	if (id === otherId) continue;
+					//	let offset = cellWorldPos.subtract(CoordToPoint(otherCell.pos));
+					//	let dist = offset.magnitude();
+					//	if (dist >= cell.radius + otherCell.radius)
+					//		continue;
+					//	const dir = dist < 1e-6 ? new Point(1, 0) : offset.multiplyScalar(1 / dist);
+					//	cellWorldPos = CoordToPoint(otherCell.pos).add(dir.multiplyScalar(cell.radius + otherCell.radius));
+					//}
 					cell.pos = PointToCoord(cellWorldPos);
 				}
+			}
+			for (const [id, cell] of Object.entries(this.cells)) {
 				const graph = this.getCellGraphic(id);
 				graph.position.set(cell.pos.x, cell.pos.y);
-				graph.scale.set(cell.radius);
-				const color = this.players[cell.owner]?.color;
-				graph.tint = color ?? '#ffffff';
+				this.updateCell(graph, cell.radius, id);
+				graph.tint = this.players[cell.owner]?.color ?? '#ffffff';
 			}
 			for (const [id, f] of Object.entries(this.food))
 			{
@@ -186,6 +241,8 @@ export class PixiApp {
 		this.cells = structuredClone(snap.cells);
 		this.players = snap.players;
 		this.food = structuredClone(snap.food);
+		this.arena = snap.arena;
+
 	}
 
 	destroy(): void {
