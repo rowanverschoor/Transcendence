@@ -194,7 +194,7 @@ export class PixiApp {
 					const vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * 5 * sizeFactor);
 					cellWorldPos = cellWorldPos.add(vel);
 					cellWorldPos.x = Math.min(this.arena.width, Math.max(0, cellWorldPos.x));
-					cellWorldPos.y = Math.min(this.arena.width, Math.max(0, cellWorldPos.y));
+					cellWorldPos.y = Math.min(this.arena.height, Math.max(0, cellWorldPos.y));
 					// The following collision should eventually only work on friendly cells // they might still need some distortion
 					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
 					//for (const [otherId, otherCell] of Object.entries(this.cells)) {
