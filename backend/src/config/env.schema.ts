@@ -29,7 +29,7 @@ const envSchema = z
     FOOD_RADIUS: z.coerce.number().int().min(1).max(100).default(5),
     PLAYER_RADIUS: z.coerce.number().int().min(1).max(100).default(10),
     N_FOOD_CHUNKS: z.coerce.number().int().min(1).max(500).default(50),
-    MAX_VELOCITY: z.coerce.number().int().min(1).max(100).default(10),
+    MAX_VELOCITY: z.coerce.number().int().min(1).max(500).default(10),
   })
   .refine(
     (env) =>

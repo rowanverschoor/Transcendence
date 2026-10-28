@@ -30,7 +30,7 @@ const makeFood = (cfg: GameConfig): Food => {
   };
 };
 
-const tickRate_Hz: number = 20; // NOTE: Add to config?
+const tickRate_Hz: number = 60; // NOTE: Add to config?
 const tickPeriod_ms: number = 1000 / tickRate_Hz;
 
 export class GameRoom {
@@ -108,7 +108,7 @@ export class GameRoom {
         // TODO: Scale maxVelocity based on cell radius
         if (
           distance(currentState.pos, newState.pos) >
-          (tickPeriod_ms / 1000) * this.config.maxVelocity
+          (tickPeriod_ms / 1000) * 100 * this.config.maxVelocity
         )
           return false;
       }
@@ -118,7 +118,7 @@ export class GameRoom {
       // TODO: Decide if and when we kick players emiting invalid input
       // Also ban and doxx them, sell data on darkweb, blame hackers
       console.log(`Player ${this.clientIds[socket.id]} sent invalid input`);
-    //   return;
+      return;
     }
     for (const cell of input.cells) {
       // Copy with the new pos: this.cells keeps the last-tick pos so the

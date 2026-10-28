@@ -12,6 +12,9 @@ export interface InputSink {
 	send(msg: ClientMessage): void;
 }
 
+const MAX_STEP = 7.5;
+const VEL_FACTOR = 5;
+
 export class PixiApp {
 	private destroyed = false;
 	readonly app = new Application();
@@ -30,6 +33,7 @@ export class PixiApp {
 
 	private foodLayer = new Container();
 	private cellLayer = new Container();
+	private changedCells = new Map<CellId, Coord>();
 
 	private keyDown = (e: KeyboardEvent): void => {
 		if (e.repeat)
@@ -91,7 +95,6 @@ export class PixiApp {
 			const mousePos = app.renderer.events.pointer.global;
 			this.sinceLastSend += time.deltaMS;
 
-			let changedCells: PlayerInput["cells"] = [];
 			for (const [id, cell] of Object.entries(this.cells))
 			{
 				if (cell.owner === this.id)
@@ -100,7 +103,12 @@ export class PixiApp {
 					const distToMouse = mousePos.subtract(cellWorldPos);
 					let t = Math.min(distToMouse.magnitude() / 100, 1) ** 2;
 					const sizeFactor = 1 / Math.pow(cell.radius / 25, 0.45);
-					const vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * 5 * sizeFactor);
+					let vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * VEL_FACTOR * sizeFactor);
+					console.log(vel.magnitude());
+					const speed = vel.magnitude();
+					if (speed > MAX_STEP * time.deltaTime) {
+						vel = vel.multiplyScalar((MAX_STEP * time.deltaTime) / speed);
+					}
 					cellWorldPos = cellWorldPos.add(vel);
 					// The following collision should eventually only work on friendly cells // they might still need some distortion
 					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
@@ -113,8 +121,10 @@ export class PixiApp {
 						const dir = dist < 1e-6 ? new Point(1, 0) : offset.multiplyScalar(1 / dist);
 						cellWorldPos = CoordToPoint(otherCell.pos).add(dir.multiplyScalar(cell.radius + otherCell.radius));
 					}
+					cellWorldPos.x = Math.max(0 + cell.radius, Math.min(cellWorldPos.x, 800 - cell.radius));
+					cellWorldPos.y = Math.max(0 + cell.radius, Math.min(cellWorldPos.y, 800 - cell.radius));
 					cell.pos = PointToCoord(cellWorldPos);
-					changedCells.push({ id, pos: { x: cell.pos.x, y: cell.pos.y } });
+					this.changedCells.set( id, { x: cell.pos.x, y: cell.pos.y } );
 				}
 				const graph = this.getCellGraphic(id);
 				graph.position.set(cell.pos.x, cell.pos.y);
@@ -128,17 +138,19 @@ export class PixiApp {
 				graph.position.set(f.pos.x, f.pos.y);
 				graph.scale.set(f.radius);
 			}
-			if (this.sinceLastSend >= 50) {
-				this.sinceLastSend -= 50;
+			if (this.sinceLastSend >= 1000 / 60) {
+				this.sinceLastSend -= 1000 / 60;
 				this.sink.send(this.makeInput({
-					cells: changedCells,
+					cells: [...this.changedCells].map(([id, pos]) => ({ id, pos })),
 					split: this.pendingSplit,
 					eject: this.pendingEject,
 				}));
 				this.pendingEject = false;
 				this.pendingSplit = false;
+				this.changedCells.clear();
 			}
 		});
+		app.ticker.maxFPS = 60;
 	}
 
 	public update(gu: GameUpdate): void {
