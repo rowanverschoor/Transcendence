@@ -12,6 +12,28 @@ export interface InputSink {
 	send(msg: ClientMessage): void;
 }
 
+/* 
+Put in game console to test:
+	const game = ng.getComponent(document.querySelector('app-game'));
+	game.app.snapshot({
+	type: 'snapshot', roomId: 'abcdefghij', you: '1', tick: 0,
+	arena: { width: 800, height: 800 },
+	players: {
+		'1': { name: 'You',   color: '#f08409' },
+		'2': { name: 'Enemy', color: '#3b82f6' },
+	},
+	cells: {
+		'1': { owner: '1', pos: { x: 100, y: 100 }, radius: 25 },
+		'2': { owner: '2', pos: { x: 500, y: 500 }, radius: 40 },
+	},
+	food: {
+		f1: { pos: { x: 250, y: 150 }, radius: 5 },
+		f2: { pos: { x: 300, y: 200 }, radius: 5 },
+		f3: { pos: { x: 350, y: 250 }, radius: 5 },
+	},
+	});
+*/
+
 export class PixiApp {
 	private destroyed = false;
 	readonly app = new Application();
@@ -82,22 +104,22 @@ export class PixiApp {
 		return engine;
 	}
 
-	private isBlocked(pos: Point, id: CellId): boolean {
+	private isBlocked(pos: Point, id: CellId): "wall" | "cell" | null {
 		if (pos.x <= 0 || pos.x >= this.arena.width ||
 			pos.y <= 0 || pos.y >= this.arena.height)
-			return (true);
+			return ("wall");
 
 		for (const [otherId, otherCell] of Object.entries(this.cells)) {
 			if (id === otherId) continue;
 			let offset = pos.subtract(CoordToPoint(otherCell.pos));
 			if (offset.magnitude() < otherCell.radius)
-				return (true);
+				return ("cell");
 		}
-		return (false);
+		return (null);
 	}
 
 	private updateCell(cell: Graphics, radius: number, id: CellId) {
-		const segments = 16;
+		const segments = 360;
 		let points : Point[] = [];
 
 		cell.clear();
@@ -115,8 +137,13 @@ export class PixiApp {
 					cell.position.x + dirX * d,
 					cell.position.y + dirY * d,
 				);
-				if (this.isBlocked(pos, id)) {
-					hitDist = Math.min(d + CONTACT_OVERLAP, radius);
+				let type = this.isBlocked(pos, id);
+				if (type === "wall") {
+					hitDist = Math.min(d, radius);
+					break;
+				}
+				else if (type === "cell") {
+					// do stuff
 					break;
 				}
 			}
@@ -129,7 +156,7 @@ export class PixiApp {
 		for (let i = 0; i < segments; i++) {
 			const next = points[(i + 1) % segments];
 			const m = mid(points[i], next);
-			cell.quadraticCurveTo(points[i].x, points[i].y, m.x, m.y);
+			cell.quadraticCurveTo(points[i].x, points[i].y, m.x, m.y, 0);
 		}
 		cell.closePath();
 		cell.fill('#ffffff');
@@ -166,6 +193,8 @@ export class PixiApp {
 					const sizeFactor = 1 / Math.pow(cell.radius / 25, 0.45);
 					const vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * 5 * sizeFactor);
 					cellWorldPos = cellWorldPos.add(vel);
+					cellWorldPos.x = Math.min(this.arena.width, Math.max(0, cellWorldPos.x));
+					cellWorldPos.y = Math.min(this.arena.width, Math.max(0, cellWorldPos.y));
 					// The following collision should eventually only work on friendly cells // they might still need some distortion
 					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
 					//for (const [otherId, otherCell] of Object.entries(this.cells)) {
