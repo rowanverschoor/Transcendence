@@ -32,15 +32,16 @@ describe("AuthService.register", () => {
   it("refuses a taken email with a 409", async () => {
     const { auth } = setup();
     await auth.register(request);
-    await expect(auth.register({ ...request, displayName: "Other" })).rejects.toThrow("Email already in use");
-
+    await expect(auth.register({ ...request, displayName: "Other" })).rejects.toMatchObject({
+      response: { statusCode: 409, message: "Email already in use", error: "Conflict" },
+    });
   });
 
   it("refuses a taken display name with a 409, ignoring case", async () => {
     const { auth } = setup();
     await auth.register(request);
-    await expect(auth.register({ ...request, email: "other@x.com", displayName: "SAM" })).rejects.toThrow(
-      "Display name already in use",
-    );
+    await expect(auth.register({ ...request, email: "other@x.com", displayName: "SAM" })).rejects.toMatchObject({
+      response: { statusCode: 409, message: "Display name already in use", error: "Conflict" },
+    });
   });
 });

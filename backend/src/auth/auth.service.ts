@@ -11,7 +11,7 @@ export class AuthService {
   constructor(
     private readonly credentials: CredentialsRepository,
     private readonly hasher: PasswordHasher,
-  ) { }
+  ) {}
 
   async register(request: RegisterRequest): Promise<User> {
     const user: User = { id: randomUUID(), email: request.email, displayName: request.displayName };

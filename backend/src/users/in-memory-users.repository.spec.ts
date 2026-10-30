@@ -39,4 +39,10 @@ describe("InMemoryUsersRepository", () => {
     await users.create(sam);
     await expect(users.create({ ...other, displayName: "SAM" })).rejects.toThrow(DuplicateDisplayNameError);
   });
+
+  it("refuses a taken email when two creates run at the same time", async () => {
+    const users = new InMemoryUsersRepository();
+    const results = await Promise.allSettled([users.create(sam), users.create({ ...other, email: "sam@x.com" })]);
+    expect(results.map((r) => r.status)).toEqual(["fulfilled", "rejected"]);
+  });
 });
