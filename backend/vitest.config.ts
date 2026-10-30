@@ -6,6 +6,14 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**"],
       exclude: ["**/*.spec.ts"],
+      reporter: [
+        "text",
+        "html",
+        "clover",
+        "json",
+        // Written to coverage/coverage.txt for the CI step summary
+        ["text", { file: "coverage.txt" }],
+      ],
     },
   },
 });
