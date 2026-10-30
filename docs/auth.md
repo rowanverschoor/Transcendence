@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-21.
+Owner: a0f. Last updated: 2026-10-30.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -28,7 +28,9 @@ Right now there is a frontend placeholder and a shared contract. The
 placeholder is login and register pages, and a fake `AuthService` that accepts
 any email with the password `password`. The contract in `shared/auth.ts`
 describes what register and login send and receive, and the frontend already
-uses its `User` type and field rules. Nothing talks to the backend yet.
+uses its `User` type and field rules. The backend has `POST /auth/register`,
+which keeps users and password hashes in memory for now. The frontend does
+not call it yet, and there is no login yet.
 
 ## Roadmap
 
@@ -60,12 +62,12 @@ a milestone are planned when we start it, not before.
   easier to add later.
 - **PRs:** too much for one review, so it is split:
   - **Before (done):** the contract changes in `shared/auth.ts` (its own PR).
-  - **3.0. Repository classes** (together with the doc update): the
+  - **3.0. Repository classes (done):** the
     abstract `UsersRepository` and `CredentialsRepository` and the
     duplicate errors. Small, and lets Ama build the Drizzle versions
     against it.
-  - **3a. Register:** the in-memory repositories, password hashing and
-    `POST /auth/register`, using the zod pipe and Vitest from #15. Sets the
+  - **3a. Register (done):** the in-memory repositories, password hashing
+    and `POST /auth/register`, tested with Vitest from #15. Sets the
     pattern other endpoints will copy.
   - **3b. Login:** checking the password, the same answer and timing for
     unknown emails, and `POST /auth/login`.
@@ -148,6 +150,9 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   the TypeScript type and the runtime check, for frontend and backend. This
   means milestone 3 validates input with zod, not with NestJS's default
   class-validator. (2026-10-07)
+- HTTP request bodies are checked by `ZodBodyPipe`, which answers `400`
+  with `errors` per field. The existing `ZodValidationPipe` is for
+  WebSocket messages and stays as it is. (2026-10-30)
 - Display names are 3 to 32 characters. Spaces at the start and end are
   removed before the length is checked, so `Sam` and `Sam ` can't both exist.
   Only `A-Z`, `a-z`, `0-9` and `_` are allowed. Uppercase stays because names
@@ -189,6 +194,10 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   and our backend Docker image runs Node 22, so Argon2id would mean a Docker
   change or an extra package that needs a native build. scrypt needs
   neither, and scrypt is secure enough for this project. (2026-10-08)
+  The stored hash is one string, `scrypt$N$r$p$salt$hash`, so the settings
+  can be raised later without breaking older passwords. We use N=2^14, r=8,
+  p=5, one of OWASP's recommended options: about 16 MiB and 120 ms per hash.
+  (2026-10-30)
 - Backend tests use Vitest, the same tool the frontend uses. It handles
   TypeScript and ES modules without extra setup, and keeps the same type
   information as our runtime, so tests build NestJS classes the same way the
