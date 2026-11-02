@@ -1,1 +1,18 @@
-<p>profile works!</p>
+@if (auth.currentUser(); as user) {
+  <section class="profile-card">
+    <h1>{{ user.displayName }}</h1>
+    <p>id: {{ user.id }}</p>
+  </section>
+
+  @if (stats.stats(); as s) {
+    <section class="profile-card">
+      <h2>Stats</h2>
+      <p>Balls consumed: {{ s.ballsConsumed }}</p>
+    </section>
+  }
+} @else {
+  <section class="profile-card profile-card--guest">
+    <h2>You are not logged in</h2>
+    <a routerLink="/login" class="btn btn--ghost">Log in</a>
+  </section>
+}
