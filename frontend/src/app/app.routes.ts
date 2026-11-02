@@ -4,6 +4,7 @@ import { Profile } from './features/profile/profile';
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
 import { Game } from './features/game/game';
+import { Game2 } from './features/game2/game2';
 import { NotFound } from './features/notfound/notfound';
 import { Privacy } from './features/legal/privacy/privacy';
 import { Terms } from './features/legal/terms/terms';
@@ -31,6 +32,10 @@ export const routes: Routes = [
 		// will need game/:id once backend can create matches
 		path: 'game',
 		component: Game,
+	},
+	{
+		path: 'game2',
+		component: Game2,
 	},
 	{
 		path: 'privacy',
