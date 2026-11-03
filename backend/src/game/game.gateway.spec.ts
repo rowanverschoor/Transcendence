@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Server, Socket } from "socket.io";
-import type { GameSnapshot } from "@transcendence/shared";
+import type { GameSnapshot, GameUpdate } from "@transcendence/shared";
 import { ServerMessage } from "@transcendence/shared";
 import { GameGateway } from "./game.gateway.js";
 import { RoomRegistry } from "./gameroom.js";
@@ -11,6 +11,8 @@ const config: GameConfig = {
   height: 800,
   capacity: 3,
   foodRadius: 10,
+  playerRadius: 10,
+  maxVelocity: 10,
   nFoodChunks: 2,
 };
 
@@ -40,6 +42,9 @@ const makeSocket = (id: string) => {
     join: (room: string): void => {
       socket.rooms.add(room);
     },
+    leave: (room: string): void => {
+      socket.rooms.delete(room);
+    },
   } as unknown as Socket;
   return { socket, direct, broadcasted };
 };
@@ -58,6 +63,9 @@ const makeGateway = (
 
 const snapshots = (messages: ServerMessage[]): GameSnapshot[] =>
   messages.filter((m) => m.type === "snapshot");
+
+const updates = (messages: ServerMessage[]): GameUpdate[] =>
+  messages.filter((m) => m.type === "update");
 
 const joinPayload = (over: Record<string, unknown> = {}): string =>
   // ADR 0006: meta with a color is mandatory on every join.
@@ -154,27 +162,36 @@ describe("GameGateway.handleMessage", () => {
     expect(Object.keys(registry.first()?.players ?? {})).toHaveLength(0);
   });
 
-  it("input responds with an acknowledgement to the sender", () => {
-    const { gateway } = makeGateway();
+  it("input is routed to the room: the next tick delivers an update with the input's seq", () => {
+    const { gateway, registry } = makeGateway();
     const sender = makeSocket("s1");
-    const other = makeSocket("s2");
     gateway.handleMessage(sender.socket, joinPayload());
+    const snap = snapshots(sender.direct)[0];
+    // addPlayer spawned exactly one owned cell. Move it well inside the
+    // max-velocity budget ((tickPeriod_ms / 1000) * maxVelocity = 0.05s *
+    // 10 = 0.5 units per tick) so the server-side validation accepts it.
+    const [cellId, cell] = Object.entries(snap.cells)[0];
+    const pos = { x: cell.pos.x + 0.1, y: cell.pos.y + 0.1 };
     gateway.handleMessage(
       sender.socket,
       JSON.stringify({
         type: "input",
         seq: 1,
-        mousepos: { x: 1, y: 2 },
+        cells: [{ id: cellId, pos }],
       }),
     );
+    registry.get(snap.roomId)?.doTick();
+
     expect(sender.direct).toHaveLength(2);
-    expect(sender.direct).toContainEqual({
-      type: "announcement",
-      text: "Input received",
-    } satisfies ServerMessage);
-    expect(other.direct).toHaveLength(0);
+    const [update] = updates(sender.direct);
+    expect(update.seq).toBe(1);
+    expect(update.cells[cellId]).toEqual({
+      owner: snap.you,
+      pos,
+      radius: config.playerRadius,
+    });
+    // The gateway routes inputs silently; no per-input acknowledgement.
     expect(sender.broadcasted).toHaveLength(0);
-    expect(other.broadcasted).toHaveLength(0);
   });
 });
 
