@@ -54,7 +54,7 @@ export class Game implements AfterViewInit, OnDestroy {
 
     socket.on("connect", (): void => {
       console.log("connected");
-      let jr: JoinRequest = {
+      const jr: JoinRequest = {
         type: "join",
         roomId: this.snap?.roomId,
         meta: {
