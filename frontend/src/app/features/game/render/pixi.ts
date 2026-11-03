@@ -129,8 +129,6 @@ export class PixiApp {
 			const dirX = Math.sin(angle);
 			const dirY = -Math.cos(angle);
 
-			const CONTACT_OVERLAP = 3;
-
 			let hitDist = radius;
 			for (let d = 1; d <= radius; d += 1) {
 				const pos = new Point(
@@ -143,7 +141,8 @@ export class PixiApp {
 					break;
 				}
 				else if (type === "cell") {
-					// do stuff
+					console.log(radius - ((radius - d) / 2))
+					hitDist = Math.min(radius - ((radius - d) / 2), radius);
 					break;
 				}
 			}
