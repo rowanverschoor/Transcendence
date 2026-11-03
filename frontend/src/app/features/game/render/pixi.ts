@@ -1,8 +1,6 @@
 import { Application, Point, Rectangle, Graphics, Container } from 'pixi.js';
-import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot } from "@transcendence/shared/protocol";
+import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot, ClientMessage, SequencedFactoryFactory, PlayerInput } from "@transcendence/shared/protocol";
 import 'pixi.js/math-extras';
-
-const MAX_RADIUS = 200;
 
 function cssColor(name: string): string {
 	return getComputedStyle(document.documentElement)
@@ -10,34 +8,49 @@ function cssColor(name: string): string {
 		.trim();
 }
 
+export interface InputSink {
+	send(msg: ClientMessage): void;
+}
+
+const MAX_STEP = 7.5;
+const VEL_FACTOR = 5;
+
 export class PixiApp {
 	private destroyed = false;
 	readonly app = new Application();
-	private cam = new Rectangle();
-	// TEMP: all data in the following records & id are for testing purposes only
-	private cells: Record<CellId, CellState> = {
-		"1": { owner: "1", pos: { x: 100, y: 100 }, radius: 25 },
-		"2": { owner: "2", pos: { x: 400, y: 300 }, radius: 40 },
-		"3": { owner: "1", pos: { x: 800, y: 800 }, radius: 50 },
-	};
-	private players: Record<PlayerId, PlayerMeta> = {
-		"1": {name: "You", color: '#f08409'},
-		"2": {name: "NotYou", color: '#0ee72b'},
-	};
-	private food: Record<FoodId, Food> = {
-		"1": {pos: {x: 500, y: 500}, radius: 10},
-		"2": {pos: {x: 900, y: 600}, radius: 10},
-		"3": {pos: {x: 1000, y: 200}, radius: 10},
-		"4": {pos: {x: 600, y: 200}, radius: 10},
-		"5": {pos: {x: 300, y: 700}, radius: 10},
-	};
+	//private cam = new Rectangle();
+	private cells: Record<CellId, CellState> = {};
+	private players: Record<PlayerId, PlayerMeta> = {};
+	private food: Record<FoodId, Food> = {};
 	private cellGraphics: Record<CellId, Graphics> = {};
 	private foodGraphics: Record<FoodId, Graphics> = {};
-	private id: PlayerId = "1";
+	private id: PlayerId = "";
+	private sink!: InputSink;
+	private sinceLastSend = 0;
+	private makeInput = SequencedFactoryFactory(0, PlayerInput);
+	private pendingSplit : boolean = false;
+	private pendingEject : boolean = false;
 
 	private foodLayer = new Container();
 	private cellLayer = new Container();
+	private changedCells = new Map<CellId, Coord>();
 
+	private keyDown = (e: KeyboardEvent): void => {
+		if (e.repeat)
+			return ;
+		const t = e.target as HTMLElement | null;
+		if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))
+			return ;
+		switch (e.code) {
+			case 'Space':
+				e.preventDefault();
+				this.pendingSplit = true;
+				break;
+			case 'KeyW':
+				this.pendingEject = true;
+				break;
+		}
+	}
 
 	private getCellGraphic(id: CellId): Graphics {
 		let g = this.cellGraphics[id];
@@ -59,8 +72,9 @@ export class PixiApp {
 		return g;
 	}
 
-	static async create(host: HTMLElement): Promise<PixiApp> {
+	static async create(host: HTMLElement, sink: InputSink): Promise<PixiApp> {
 		const engine = new PixiApp();
+		engine.sink = sink;
 		await engine.app.init({
 			background: cssColor('game'),
 			resizeTo: host,
@@ -68,6 +82,7 @@ export class PixiApp {
 		host.appendChild(engine.app.canvas);
 		engine.app.stage.addChild(engine.foodLayer, engine.cellLayer);
 		engine.startTicking();
+		window.addEventListener('keydown', engine.keyDown);
 		return engine;
 	}
 
@@ -78,6 +93,8 @@ export class PixiApp {
 		app.ticker.add((time) => {
 			if (this.destroyed) return;
 			const mousePos = app.renderer.events.pointer.global;
+			this.sinceLastSend += time.deltaMS;
+
 			for (const [id, cell] of Object.entries(this.cells))
 			{
 				if (cell.owner === this.id)
@@ -86,16 +103,13 @@ export class PixiApp {
 					const distToMouse = mousePos.subtract(cellWorldPos);
 					let t = Math.min(distToMouse.magnitude() / 100, 1) ** 2;
 					const sizeFactor = 1 / Math.pow(cell.radius / 25, 0.45);
-					const vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * 5 * sizeFactor);
-					cellWorldPos = cellWorldPos.add(vel);
-					// TEMP: food collision will be moved to backend so not 2 players can eat the same food simultane due to ping etc
-					for (const [foodId, food] of Object.entries(this.food)) {
-						let dist = cellWorldPos.subtract(CoordToPoint(food.pos)).magnitude();
-						if (dist < cell.radius + food.radius) {
-							food.pos = <Coord>{x: -100, y:  -100};
-							cell.radius = Math.min(MAX_RADIUS, cell.radius + 1);
-						}
+					let vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * VEL_FACTOR * sizeFactor);
+					console.log(vel.magnitude());
+					const speed = vel.magnitude();
+					if (speed > MAX_STEP * time.deltaTime) {
+						vel = vel.multiplyScalar((MAX_STEP * time.deltaTime) / speed);
 					}
+					cellWorldPos = cellWorldPos.add(vel);
 					// The following collision should eventually only work on friendly cells // they might still need some distortion
 					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
 					for (const [otherId, otherCell] of Object.entries(this.cells)) {
@@ -107,9 +121,11 @@ export class PixiApp {
 						const dir = dist < 1e-6 ? new Point(1, 0) : offset.multiplyScalar(1 / dist);
 						cellWorldPos = CoordToPoint(otherCell.pos).add(dir.multiplyScalar(cell.radius + otherCell.radius));
 					}
+					cellWorldPos.x = Math.max(0 + cell.radius, Math.min(cellWorldPos.x, 800 - cell.radius));
+					cellWorldPos.y = Math.max(0 + cell.radius, Math.min(cellWorldPos.y, 800 - cell.radius));
 					cell.pos = PointToCoord(cellWorldPos);
+					this.changedCells.set( id, { x: cell.pos.x, y: cell.pos.y } );
 				}
-
 				const graph = this.getCellGraphic(id);
 				graph.position.set(cell.pos.x, cell.pos.y);
 				graph.scale.set(cell.radius);
@@ -122,7 +138,19 @@ export class PixiApp {
 				graph.position.set(f.pos.x, f.pos.y);
 				graph.scale.set(f.radius);
 			}
+			if (this.sinceLastSend >= 1000 / 60) {
+				this.sinceLastSend -= 1000 / 60;
+				this.sink.send(this.makeInput({
+					cells: [...this.changedCells].map(([id, pos]) => ({ id, pos })),
+					split: this.pendingSplit,
+					eject: this.pendingEject,
+				}));
+				this.pendingEject = false;
+				this.pendingSplit = false;
+				this.changedCells.clear();
+			}
 		});
+		app.ticker.maxFPS = 60;
 	}
 
 	public update(gu: GameUpdate): void {
@@ -168,6 +196,7 @@ export class PixiApp {
 	}
 
 		this.id = snap.you;
+		console.log("id: ", this.id);
 		this.cells = structuredClone(snap.cells);
 		this.players = snap.players;
 		this.food = structuredClone(snap.food);
@@ -182,6 +211,7 @@ export class PixiApp {
 		this.cells = {};
 		this.food = {};
 		this.players = {};
+		window.removeEventListener('keydown', this.keyDown);
 	}
 }
 

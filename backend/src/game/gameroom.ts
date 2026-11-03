@@ -30,7 +30,11 @@ const makeFood = (cfg: GameConfig): Food => {
   };
 };
 
+<<<<<<< HEAD
 const tickRate_Hz: number = 20; // NOTE: Add to config?
+=======
+const tickRate_Hz: number = 60; // NOTE: Add to config?
+>>>>>>> 93c0f6218b8b07d5e478a54ab1283871493b694f
 const tickPeriod_ms: number = 1000 / tickRate_Hz;
 
 export class GameRoom {
@@ -108,7 +112,7 @@ export class GameRoom {
         // TODO: Scale maxVelocity based on cell radius
         if (
           distance(currentState.pos, newState.pos) >
-          (tickPeriod_ms / 1000) * this.config.maxVelocity
+          (tickPeriod_ms / 1000) * 100 * this.config.maxVelocity
         )
           return false;
       }
