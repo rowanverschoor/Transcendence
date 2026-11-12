@@ -16,7 +16,7 @@ export class AuthService {
 		// Fake: the real id and display name come from the server (auth milestone 5)
 		this.currentUser.set({
 			id: '00000000-0000-4000-8000-000000000000',
-			displayName: 'Stub User',
+			displayName: 'StubUser',
 			email: email,
 		});
 

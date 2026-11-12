@@ -1,7 +1,8 @@
-import { Component, effect, inject } from "@angular/core";
+import { Component, computed, inject, input, resource } from "@angular/core";
 import { RouterLink } from "@angular/router";
+import { ApiError } from "../../core/api-error";
 import { AuthService } from "../../core/auth.service";
-import { StatsService } from "../../core/stats.service";
+import { ProfileService } from "../../core/profile.service";
 
 @Component({
   imports: [RouterLink],
@@ -10,14 +11,33 @@ import { StatsService } from "../../core/stats.service";
   templateUrl: "./profile.html",
 })
 export class Profile {
-  protected auth = inject(AuthService);
-  protected stats = inject(StatsService);
+  private auth = inject(AuthService);
+  private profiles = inject(ProfileService);
 
-  constructor() {
-    effect(() => {
-      const user = this.auth.currentUser();
-      if (user) this.stats.load(user.id);
-      else this.stats.clear();
-    });
-  }
+  // From the route (profile/:name); /profile redirects to /profile/<my name>.
+  readonly name = input<string>();
+
+  // Names are unique ignoring case, so comparing them that way is safe.
+  protected isOwnProfile = computed(() => {
+    const me = this.auth.currentUser()?.displayName.toLowerCase();
+    return me !== undefined && me === this.name()?.trim().toLowerCase();
+  });
+
+  // Public: keyed by the viewed name only; login state doesn't matter.
+  protected publicProfile = resource({
+    params: () => this.name(),
+    loader: ({ params: name, abortSignal }) => this.profiles.getPublic(name, abortSignal),
+  });
+
+  // Private: exists only on my own page. Logout or a user switch re-keys it,
+  // which aborts the load and drops the value.
+  protected privateProfile = resource({
+    params: () => (this.isOwnProfile() ? this.name() : undefined),
+    loader: ({ abortSignal }) => this.profiles.getMe(abortSignal),
+  });
+
+  protected notFound = computed(() => {
+    const error = this.publicProfile.error();
+    return error instanceof ApiError && error.status === 404;
+  });
 }
