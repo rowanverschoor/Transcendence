@@ -14,6 +14,19 @@ We can benchmark latency by adding a timestamp to all communications later.
 A node backend that can accept websocket connections.
 Each client gets it own connection.
 When the backend receives a `MOUSEPOS` message the message is broadcasted.
+
+### Database
+
+#### backend database migrations
+
+Copy `.env.example` to `.env` at the repo root and set `DATABASE_URL`, then:
+
+```sh
+docker compose -f docker-compose.dev.yml up -d db
+npm run db:migrate -w backend
+```
+drizzle.config.ts loads the root .env, so no inline DATABASE_URL is needed.
+
 #### backend database tests:
 
 Start the dev database:
