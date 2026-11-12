@@ -10,6 +10,9 @@ export function makeTestDatabase(): DatabaseService {
 	if (!url) {
 		throw new Error("Need valid TEST_DATABASE_URL for repo tests");
 	}
+	if (!new URL(url).pathname.endsWith("_test")) {
+		throw new Error("TEST_DATABASE_URL must point at a *_test database");
+	}
 	const config = { getOrThrow: () => url } as unknown as ConfigService<Env, true>;
 	return new DatabaseService(config);
 }
