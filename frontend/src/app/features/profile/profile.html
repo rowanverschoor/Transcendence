@@ -1,13 +1,30 @@
-@if (auth.currentUser(); as user) {
-  <section class="profile-card">
-    <h1>{{ user.displayName }}</h1>
-    <p>id: {{ user.id }}</p>
-  </section>
-
-  @if (stats.stats(); as s) {
+@if (name()) {
+  <!-- Public: everyone -->
+  @if (notFound()) {
     <section class="profile-card">
-      <h2>Stats</h2>
-      <p>Balls consumed: {{ s.ballsConsumed }}</p>
+      <h2>Profile not found</h2>
+      <a routerLink="/" class="btn btn--ghost">Home</a>
+    </section>
+  } @else if (publicProfile.error()) {
+    <section class="profile-card">
+      <p>Couldn't load this profile.</p>
+      <button class="btn btn--ghost" (click)="publicProfile.reload()">Try again</button>
+    </section>
+  } @else if (publicProfile.hasValue()) {
+    <section class="profile-card">
+      <img class="profile-avatar" [src]="publicProfile.value().avatarUrl" alt="" width="96" height="96">
+      <h1>{{ publicProfile.value().displayName }}</h1>
+      <p>id: {{ publicProfile.value().id }}</p>
+    </section>
+  } @else {
+    <section class="profile-card"><p>Loading…</p></section>
+  }
+
+  <!-- Private: only on your own page -->
+  @if (isOwnProfile() && privateProfile.hasValue()) {
+    <section class="profile-card">
+      <h2>Only you can see this</h2>
+      <p>Email: {{ privateProfile.value().email }}</p>
     </section>
   }
 } @else {

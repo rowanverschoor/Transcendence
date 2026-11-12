@@ -11,7 +11,7 @@ export const UserId = z.uuidv4();
 
 // Single fields, exported so a form can check one field at a time.
 export const Email = z.email();
-export const DisplayName = z.string().trim().min(3).max(32);
+export const DisplayName = z.string().trim().min(3).max(32).regex(/^\S+$/, "No spaces");
 export const Password = z.string().min(8).max(64);
 
 // --- Client -> server --------------------------------------------------------
