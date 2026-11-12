@@ -16,7 +16,8 @@ const timestamps = {
     .defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 };
 
 export const users = pgTable(
@@ -44,7 +45,8 @@ export const userStats = pgTable("user_stats", {
   biggestSize: integer("biggest_size").notNull().default(0), // only placeholder stat I could think of in the moment
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
-    .defaultNow(),
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const credentials = pgTable("credentials", {
