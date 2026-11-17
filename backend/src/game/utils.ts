@@ -30,8 +30,3 @@ export const RandomCoord = (
     y: RandomFromTo(ymin, ymax),
   };
 };
-
-export const distance = (a: Coord, b: Coord): number => {
-  const c: Coord = { x: a.x - b.x, y: a.y - b.y };
-  return Math.sqrt(c.x * c.x + c.y * c.y);
-};

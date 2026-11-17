@@ -7,9 +7,11 @@ import {
   PlayerMeta,
   RoomId,
 } from "@transcendence/shared";
-import { distance, RandomCoord, RandomFromTo, RandomUpTo } from "./utils.js";
+import { RandomCoord, RandomFromTo, RandomUpTo } from "./utils.js";
+import { clampCoord, moveCell } from "@transcendence/shared/game";
 import type { GameConfig } from "./game.config.js";
 import type {
+  Coord,
   GameSnapshot,
   GameUpdate,
   PlayerInput,
@@ -51,6 +53,8 @@ export class GameRoom {
     food: Record<FoodId, Food>;
   } = { players: {}, cells: {}, food: {} };
   readonly PlayerSeqs: Record<PlayerId, number> = {};
+  /** Latest accepted mouse target per player, already clamped to the arena. */
+  readonly mouseTargets: Record<PlayerId, Coord> = {};
 
   constructor(
     readonly config: GameConfig,
@@ -80,8 +84,18 @@ export class GameRoom {
   newCellId = (): string => (this.nextCell++).toString();
 
   doTick() {
-    for (const [id, update] of Object.entries(this.updates.cells))
-      this.cells[id].pos = update.pos;
+    const dt = tickPeriod_ms / 1000;
+    for (const [id, cell] of Object.entries(this.cells)) {
+      const target = this.mouseTargets[cell.owner];
+      if (target === undefined) continue; // never sent input: cell stays put
+      const pos = clampCoord(
+        moveCell(cell.pos, cell.radius, target, this.config.maxVelocity, dt),
+        this.config,
+        cell.radius,
+      );
+      this.cells[id] = { ...cell, pos };
+      this.updates.cells[id] = this.cells[id];
+    }
     for (const [_, socket] of Object.entries(this.clients))
       socket.emit(
         "message",
@@ -98,35 +112,12 @@ export class GameRoom {
   }
 
   readonly processInput = (socket: Socket, input: PlayerInput) => {
-    const playerId: PlayerId = this.clientIds[socket.id];
-    const inputValid = (): boolean => {
-      for (const newState of input.cells) {
-        const currentState = this.cells[newState.id];
-        if (currentState === undefined || currentState.owner !== playerId)
-          return false;
-        // NOTE: Using the tick period for this calculation might be too naive. Will cause rubber banding on dropped packets.
-        // TODO: Scale maxVelocity based on cell radius
-        if (
-          distance(currentState.pos, newState.pos) >
-          (tickPeriod_ms / 1000) * this.config.maxVelocity
-        )
-          return false;
-      }
-      return true;
-    };
-    if (!inputValid()) {
-      // TODO: Decide if and when we kick players emiting invalid input
-      // Also ban and doxx them, sell data on darkweb, blame hackers
-      console.log(`Player ${this.clientIds[socket.id]} sent invalid input`);
-      return;
-    }
-    for (const cell of input.cells) {
-      // Copy with the new pos: this.cells keeps the last-tick pos so the
-      // next input this tick is still validated against it; the buffer
-      // is committed to this.cells in doTick().
-      this.updates.cells[cell.id] = { ...this.cells[cell.id], pos: cell.pos };
-      // NOTE: Calculating collisions will happen at the next tick.
-    }
+    const playerId = this.clientIds[socket.id];
+    if (playerId === undefined) return; // gateway routes only room members
+    // Drop reordered and duplicate input so a stale mouse target can't
+    // regress a newer one.
+    if (input.seq <= this.PlayerSeqs[playerId]) return;
+    this.mouseTargets[playerId] = clampCoord(input.mouse, this.config);
     this.PlayerSeqs[playerId] = input.seq;
     // TODO: Handle splitting and ejection
   };
@@ -152,9 +143,7 @@ export class GameRoom {
       radius: this.config.playerRadius,
     };
     this.cells[cellId] = cell;
-    // Copy, not alias: updates.cells must buffer the intended next-tick state
-    // while this.cells stays at the last-tick state that inputs validate
-    // against.
+    // Spawn delta: the new cell rides the next tick's update.
     this.updates.cells[cellId] = { ...cell };
     client.join(this.id);
     client.emit("message", JSON.stringify(this.snapshotFor(id)));
@@ -169,6 +158,7 @@ export class GameRoom {
     delete this.clients[pid];
     delete this.players[pid];
     delete this.PlayerSeqs[pid];
+    delete this.mouseTargets[pid];
     for (const [cid, _] of Object.entries(this.cells))
       if (this.cells[cid].owner === pid) delete this.cells[cid];
     // Null entry in update message tells frontend the player has been removed
@@ -181,7 +171,7 @@ export class GameRoom {
     type: "snapshot",
     roomId: this.id,
     you,
-    seq: you in this.PlayerSeqs ? this.PlayerSeqs[you] : 0,
+    seq: (you in this.PlayerSeqs ? this.PlayerSeqs[you] : 0) + 1,
     arena: { width: this.config.width, height: this.config.height },
     tick: 0,
     players: this.players,

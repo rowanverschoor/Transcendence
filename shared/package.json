@@ -5,7 +5,8 @@
   "exports": {
     ".": "./protocol.ts",
     "./protocol": "./protocol.ts",
-    "./auth": "./auth.ts"
+    "./auth": "./auth.ts",
+    "./game": "./game.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"

@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ZodValidationPipe } from "./zod-validation.pipe.js";
-import { makeClientMessage } from "@transcendence/shared";
+import { ClientMessage } from "@transcendence/shared";
 import { WsException } from "@nestjs/websockets";
 
-const arena = { width: 800, height: 800 };
-const pipe = new ZodValidationPipe(makeClientMessage(arena));
+const pipe = new ZodValidationPipe(ClientMessage);
 
 const wireMessage = JSON.stringify({
   type: "input",
   seq: 1,
-  cells: [{ id: "c0", pos: { x: 10, y: 20 } }],
+  mouse: { x: 10, y: 20 },
 });
 
 /** Asserts the callable throws a WsException whose message contains a fragment. */
@@ -28,7 +27,7 @@ describe("ZodValidationPipe", () => {
     expect(pipe.transform(wireMessage, {} as never)).toEqual({
       type: "input",
       seq: 1,
-      cells: [{ id: "c0", pos: { x: 10, y: 20 } }],
+      mouse: { x: 10, y: 20 },
     });
   });
 
@@ -60,33 +59,38 @@ describe("ZodValidationPipe", () => {
     expectWsError(
       () =>
         pipe.transform(
-          JSON.stringify({ type: "input", cells: [{ id: "c0", pos: { x: 0, y: 0 } }] }),
+          JSON.stringify({ type: "input", mouse: { x: 0, y: 0 } }),
           {} as never,
         ),
       "seq: ",
     );
   });
 
-  it("rejects coordinates outside the arena boundary", () => {
+  it("rejects a non-numeric mouse coordinate", () => {
     expectWsError(
       () =>
         pipe.transform(
-          JSON.stringify({
-            type: "input",
-            seq: 0,
-            cells: [{ id: "c0", pos: { x: 801, y: 20 } }],
-          }),
+          JSON.stringify({ type: "input", seq: 0, mouse: { x: "10", y: 20 } }),
           {} as never,
         ),
-      "cells.0.pos.x: Too big: expected number to be <=800",
+      "mouse.x",
     );
+  });
+
+  it("accepts an out-of-arena mouse: clamping happens in the room, not the pipe", () => {
+    expect(
+      pipe.transform(
+        JSON.stringify({ type: "input", seq: 0, mouse: { x: 9999, y: -50 } }),
+        {} as never,
+      ),
+    ).toEqual({ type: "input", seq: 0, mouse: { x: 9999, y: -50 } });
   });
 
   it("rejects a payload whose type field is missing", () => {
     expectWsError(
       () =>
         pipe.transform(
-          JSON.stringify({ seq: 1, cells: [{ id: "c0", pos: { x: 1, y: 1 } }] }),
+          JSON.stringify({ seq: 1, mouse: { x: 1, y: 1 } }),
           {} as never,
         ),
       "type: Invalid discriminator value. Expected 'input' | 'join'",

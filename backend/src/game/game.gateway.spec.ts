@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Server, Socket } from "socket.io";
 import type { GameSnapshot, GameUpdate } from "@transcendence/shared";
 import { ServerMessage } from "@transcendence/shared";
+import { clampCoord, moveCell } from "@transcendence/shared/game";
 import { GameGateway } from "./game.gateway.js";
 import { RoomRegistry } from "./gameroom.js";
 import type { GameConfig } from "./game.config.js";
@@ -162,34 +163,33 @@ describe("GameGateway.handleMessage", () => {
     expect(Object.keys(registry.first()?.players ?? {})).toHaveLength(0);
   });
 
-  it("input is routed to the room: the next tick delivers an update with the input's seq", () => {
+  it("input is routed to the room: the next tick moves the cell toward the mouse and echoes the seq", () => {
     const { gateway, registry } = makeGateway();
     const sender = makeSocket("s1");
     gateway.handleMessage(sender.socket, joinPayload());
     const snap = snapshots(sender.direct)[0];
-    // addPlayer spawned exactly one owned cell. Move it well inside the
-    // max-velocity budget ((tickPeriod_ms / 1000) * maxVelocity = 0.05s *
-    // 10 = 0.5 units per tick) so the server-side validation accepts it.
     const [cellId, cell] = Object.entries(snap.cells)[0];
-    const pos = { x: cell.pos.x + 0.1, y: cell.pos.y + 0.1 };
+    const mouse = { x: cell.pos.x + 10, y: cell.pos.y };
     gateway.handleMessage(
       sender.socket,
-      JSON.stringify({
-        type: "input",
-        seq: 1,
-        cells: [{ id: cellId, pos }],
-      }),
+      JSON.stringify({ type: "input", seq: 1, mouse }),
     );
     registry.get(snap.roomId)?.doTick();
 
     expect(sender.direct).toHaveLength(2);
     const [update] = updates(sender.direct);
     expect(update.seq).toBe(1);
-    expect(update.cells[cellId]).toEqual({
-      owner: snap.you,
-      pos,
-      radius: config.playerRadius,
-    });
+    // The server owns the physics: one 20 Hz tick toward the mouse, capped at
+    // maxVelocity * dt, with the radius speed factor.
+    expect(update.cells[cellId]?.pos).toEqual(
+      clampCoord(
+        moveCell(cell.pos, config.playerRadius, mouse, config.maxVelocity, 0.05),
+        config,
+        config.playerRadius,
+      ),
+    );
+    expect(update.cells[cellId]?.pos.x).toBeGreaterThan(cell.pos.x);
+    expect(update.cells[cellId]?.pos.y).toBe(cell.pos.y);
     // The gateway routes inputs silently; no per-input acknowledgement.
     expect(sender.broadcasted).toHaveLength(0);
   });
