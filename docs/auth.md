@@ -107,7 +107,8 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   class-validator. (2026-10-07)
 - Display names are 3 to 32 characters. Spaces at the start and end are
   removed before the length is checked, so `Sam` and `Sam ` can't both exist.
-  (2026-10-07, trimming since 2026-10-13)
+  (2026-10-07, trimming since 2026-10-13) Spaces inside a name are not
+  allowed, so a name can be used as is in a profile URL. (2026-11-12)
 - Register requires a password of at least 8 characters. Login only requires
   a non-empty password. The length rule applies when a password is chosen, so
   if the rules get stricter later, older passwords still work. (2026-10-07)

@@ -21,7 +21,6 @@ Only modules that are done or started are tagged. Everything else has nothing in
 | Standard user management | Major | 🟡 PARTLY |
 | Remote players | Major | 🟡 PARTLY |
 | ORM | Minor | 🟡 PARTLY |
-| Game statistics and match history | Minor | 🟡 PARTLY |
 
 ---
 
@@ -131,8 +130,8 @@ With screen reader support, keyboard navigation, and assistive technologies.
 - Users can add other users as friends and see their online status.
 - Users have a profile page displaying their information.
 
-### 🟡 Minor: Game statistics and match history
-> `StatsService` returns hardcoded data. No real stats, match history, achievements or leaderboard.
+### ❌ Minor: Game statistics and match history
+> Dropped (2026-11-12). The stub `StatsService` and `shared/stats.ts` were removed; the profile page now uses `ProfileService` and `shared/profile.ts`.
 
 - Track user game statistics (wins, losses, ranking, level, etc.).
 - Display match history (1v1 games, dates, results, opponents).
