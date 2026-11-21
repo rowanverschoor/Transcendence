@@ -4,7 +4,7 @@ Living document for the auth work: how auth works in this project, what we
 have assumed, and what is still undecided. Update it in the same PR whenever
 a decision changes or a milestone is finished.
 
-Owner: a0f. Last updated: 2026-10-30.
+Owner: a0f. Last updated: 2026-11-21.
 
 Decisions that are expensive to reverse get their own ADR (Architecture Decision Record) in
 [docs/adr](./adr/README.md). This file links to them.
@@ -28,9 +28,10 @@ Right now there is a frontend placeholder and a shared contract. The
 placeholder is login and register pages, and a fake `AuthService` that accepts
 any email with the password `password`. The contract in `shared/auth.ts`
 describes what register and login send and receive, and the frontend already
-uses its `User` type and field rules. The backend has `POST /auth/register`,
-which keeps users and password hashes in memory for now. The frontend does
-not call it yet, and there is no login yet.
+uses its `User` type and field rules. The backend has `POST /auth/register`
+and `POST /auth/login`, and keeps users and password hashes in memory for
+now. Login checks the password but does not start a session yet. The
+frontend does not call either of them yet.
 
 ## Roadmap
 
@@ -51,7 +52,7 @@ a milestone are planned when we start it, not before.
   against it. The backend starts using it in milestone 3.
 - **Watch out:** nothing open. User IDs are decided, see Decisions.
 
-### 3. Backend auth module
+### 3. Backend auth module (done)
 - **Goal:** register and login endpoints in NestJS, password hashing, input
   validation. Users and credentials are stored in memory behind abstract
   repository classes, until the Drizzle versions replace them (milestone 6).
@@ -69,8 +70,8 @@ a milestone are planned when we start it, not before.
   - **3a. Register (done):** the in-memory repositories, password hashing
     and `POST /auth/register`, tested with Vitest from #15. Sets the
     pattern other endpoints will copy.
-  - **3b. Login:** checking the password, the same answer and timing for
-    unknown emails, and `POST /auth/login`.
+  - **3b. Login (done):** checking the password, the same answer and timing
+    for unknown emails, and `POST /auth/login`.
 
 ### 4. Sessions and protected routes
 - **Goal:** the backend remembers who is logged in and refuses protected
@@ -173,8 +174,10 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
   passwords keep working. The list is `shared/common-passwords.ts`: the 1000
   most common passwords of 8 to 64 characters from SecLists
   (`10k-most-common.txt`, MIT), compared lowercased. It ends up in the
-  browser, which is why it stays short. The maximum of 64 also stops someone
-  from sending a huge password to make hashing slow on purpose. (2026-10-21)
+  browser, which is why it stays short. The maximum of 64 is the length NIST
+  asks us to allow at least. It does not protect hashing: scrypt reads the
+  password only once at the start, so a long one barely costs more, and
+  login has no maximum. (2026-10-21, hashing note since 2026-11-21)
 - Every rule in `shared/auth.ts` has a message a player can read, and the
   forms show that message instead of their own text, so the rules and the
   messages can't drift apart. The backend sends the same messages back for
@@ -233,11 +236,9 @@ Optional modules for later: OAuth 2.0 (42 and/or Google), 2FA.
 
 Smaller things to handle in a specific milestone.
 
-- **Milestone 3:** when a login uses an unknown email, still run scrypt once
-  on a dummy value, so it takes as long as a wrong password. Otherwise the
-  response time gives away which emails exist.
-- **Milestone 3:** compare hashes with `crypto.timingSafeEqual`, not `==`,
-  so the time a comparison takes does not leak how much of a hash matched.
+- **Milestone 4:** add tests that go through HTTP, for example that login
+  answers `200` and not `201`, and that bad input gets a `400`. Register and
+  login are only checked with curl so far.
 - **Tell DevOps:** the backend Docker image uses Node 22, while mise gives
   everyone Node 26 locally. Code that works locally can fail in Docker.
 - **Team:** there is no CI yet, so checks and tests only run when someone
