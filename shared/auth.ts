@@ -39,7 +39,7 @@ export const RegisterRequest = z.object({
 
 export const LoginRequest = z.object({
   email: Email,
-  password: z.string().min(1),
+  password: z.string().min(1, "Enter your password"),
 });
 
 // --- Server -> client --------------------------------------------------------
