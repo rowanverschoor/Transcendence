@@ -21,15 +21,22 @@
   }
 
   <!-- Private: only on your own page -->
-  @if (isOwnProfile() && privateProfile.hasValue()) {
+  @if (isOwnProfile()) {
     <section class="profile-card">
       <h2>Only you can see this</h2>
-      <p>Email: {{ privateProfile.value().email }}</p>
+      @if (privateProfile.error()) {
+        <p>Couldn't load your private details.</p>
+        <button class="btn btn--ghost" (click)="privateProfile.reload()">Try again</button>
+      } @else if (privateProfile.hasValue()) {
+        <p>Email: {{ privateProfile.value().email }}</p>
+      } @else {
+        <p>Loading…</p>
+      }
     </section>
   }
 } @else {
-  <section class="profile-card profile-card--guest">
-    <h2>You are not logged in</h2>
-    <a routerLink="/login" class="btn btn--ghost">Log in</a>
+  <section class="profile-card">
+    <h2>Profile not found</h2>
+    <a routerLink="/" class="btn btn--ghost">Home</a>
   </section>
 }

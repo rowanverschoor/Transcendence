@@ -1,8 +1,12 @@
 import { z } from "zod";
 import { DisplayName, Email, UserId } from "@transcendence/shared/auth";
 
-// Public vs private is structural: PrivateProfile extends PublicProfile, so a
-// public endpoint can't type-check as returning private fields.
+// Don't trust the types to keep private fields out of a public response.
+// TypeScript allows extra fields: a function returning PublicProfile can still
+// return a PrivateProfile, a { ...me } copy or a database row, with the email
+// (or a password hash) still in it, and it type-checks fine. What protects us
+// is that a public endpoint must run its data through PublicProfile.parse(...)
+// before sending it: zod drops every field that isn't in the schema.
 
 /** Anyone may read this. Never add private fields here. */
 export const PublicProfile = z.object({
