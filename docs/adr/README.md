@@ -11,7 +11,7 @@ reverse. Read these before changing anything they touch.
 | [0002](./0002-use-server-authoritative-websocket-sync.md) | Use server-authoritative synchronization over WebSocket | Proposed |
 | [0004](./0004-use-nestjs-for-the-backend.md) | Use NestJS for the backend | Accepted (retroactive) |
 | [0005](./0005-choose-socket-io-for-websockets.md) | Choose Socket.IO for the WebSocket layer | Accepted (retroactive) |
-| [0006](./0006-take-player-metas-from-the-join-request.md) | Take player colors and names from the join request, verbatim | Proposed |
+| [0006](./0006-take-player-metas-from-the-join-request.md) | Take player colors and names from the join request, verbatim | Rejected |
 
 0003 was withdrawn before acceptance: the product pivoted from a
 WarioWare-style microgame collection to a single agar.io clone, so
@@ -27,6 +27,8 @@ Not yet written; each is gated on an input that doesn't exist yet:
 - **0007 — choose-frontend-rendering-stack** (Angular is in, pixi.js is in code — record the game-rendering choice once the first arena renders)
 - **0008 — choose-session-and-tournament-model** (before the tournament/statistics modules)
 - **0009 — use-postgresql-with-an-orm** (after the database spike; ORM choice: Prisma / Drizzle; renumbered from the drafted 0006, which this branch claims for the player-metas record)
+- **0010 — map-game-players-to-user-accounts** (with auth milestone 7; replaces the name half of rejected 0006)
+- **player colors** (number TBD; the color half of rejected 0006 is currently unrecorded, the code still takes color from the join)
 
 ## Conventions
 
