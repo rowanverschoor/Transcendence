@@ -8,14 +8,15 @@ export const DEFAULT_AVATAR_URL = "/default-avatar.svg";
 
 // Fake users, keyed by lowercase name (names are unique ignoring case, docs/auth.md).
 // Any other name is a 404, like the real server would answer.
-const FAKE_USERS: Record<string, PublicProfile> = {
+export const FAKE_USERS: Record<string, PublicProfile> = {
 	"stubuser": { id: "00000000-0000-4000-8000-000000000000", displayName: "StubUser", avatarUrl: DEFAULT_AVATAR_URL },
 	"demoplayer": { id: "11111111-1111-4111-8111-111111111111", displayName: "DemoPlayer", avatarUrl: DEFAULT_AVATAR_URL },
+	"alice": { id: "22222222-2222-4222-8222-222222222222", displayName: "Alice", avatarUrl: DEFAULT_AVATAR_URL },
 };
 
 // Fake network delay. A real fetch gets { signal } and cancels itself instead.
-async function fakeLatency(signal: AbortSignal): Promise<void> {
-	await new Promise(resolve => setTimeout(resolve, FAKE_LATENCY_MS));
+export async function fakeLatency(signal: AbortSignal, ms = FAKE_LATENCY_MS): Promise<void> {
+	await new Promise(resolve => setTimeout(resolve, ms));
 	signal.throwIfAborted();
 }
 

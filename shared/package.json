@@ -6,7 +6,8 @@
     ".": "./protocol.ts",
     "./protocol": "./protocol.ts",
     "./auth": "./auth.ts",
-    "./profile": "./profile.ts"
+    "./profile": "./profile.ts",
+    "./friends": "./friends.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"
