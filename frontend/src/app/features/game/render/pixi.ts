@@ -1,194 +1,286 @@
-import { Application, Point, Rectangle, Graphics, Container } from 'pixi.js';
-import { CellId, CellState, Coord, GameUpdate, PlayerId, PlayerMeta, FoodId, Food, GameSnapshot } from "@transcendence/shared/protocol";
-import 'pixi.js/math-extras';
-
-const MAX_RADIUS = 200;
+import { Application, Graphics, Container } from "pixi.js";
+import {
+  ArenaConfig,
+  CellId,
+  CellState,
+  ClientMessage,
+  Coord,
+  Food,
+  FoodId,
+  GameSnapshot,
+  GameUpdate,
+  PlayerId,
+  PlayerInput,
+  PlayerMeta,
+  SequencedFactoryFactory,
+} from "@transcendence/shared/protocol";
+import { clampCoord, moveCell } from "@transcendence/shared/game";
 
 function cssColor(name: string): string {
-	return getComputedStyle(document.documentElement)
-		.getPropertyValue(`--${name}`)
-		.trim();
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(`--${name}`)
+    .trim();
+}
+
+/** Send cadence: 20 Hz, matches the backend tickPeriod_ms. */
+const SEND_INTERVAL_MS = 50;
+/** Cap the unacknowledged buffer at 2 s in case updates stall. */
+const MAX_PENDING_INPUTS = 40;
+/** Mirrors the backend MAX_VELOCITY default (the snapshot does not carry it). */
+const MAX_VELOCITY = 10;
+
+export interface InputSink {
+  send(msg: ClientMessage): void;
 }
 
 export class PixiApp {
-	private destroyed = false;
-	readonly app = new Application();
-	private cam = new Rectangle();
-	// TEMP: all data in the following records & id are for testing purposes only
-	private cells: Record<CellId, CellState> = {
-		"1": { owner: "1", pos: { x: 100, y: 100 }, radius: 25 },
-		"2": { owner: "2", pos: { x: 400, y: 300 }, radius: 40 },
-		"3": { owner: "1", pos: { x: 800, y: 800 }, radius: 50 },
-	};
-	private players: Record<PlayerId, PlayerMeta> = {
-		"1": {name: "You", color: '#f08409'},
-		"2": {name: "NotYou", color: '#0ee72b'},
-	};
-	private food: Record<FoodId, Food> = {
-		"1": {pos: {x: 500, y: 500}, radius: 10},
-		"2": {pos: {x: 900, y: 600}, radius: 10},
-		"3": {pos: {x: 1000, y: 200}, radius: 10},
-		"4": {pos: {x: 600, y: 200}, radius: 10},
-		"5": {pos: {x: 300, y: 700}, radius: 10},
-	};
-	private cellGraphics: Record<CellId, Graphics> = {};
-	private foodGraphics: Record<FoodId, Graphics> = {};
-	private id: PlayerId = "1";
+  private destroyed = false;
+  readonly app = new Application();
+  private cells: Record<CellId, CellState> = {};
+  private players: Record<PlayerId, PlayerMeta> = {};
+  private food: Record<FoodId, Food> = {};
+  /** Latest server-authoritative state for the cells this client owns. */
+  private serverCells: Record<CellId, CellState> = {};
+  /** Sent inputs not yet acknowledged by a GameUpdate (input.seq > gu.seq). */
+  private pending: PlayerInput[] = [];
+  /** Current pointer target in world coordinates. */
+  private target: Coord = { x: 0, y: 0 };
+  private arena?: ArenaConfig;
+  private cellGraphics: Record<CellId, Graphics> = {};
+  private foodGraphics: Record<FoodId, Graphics> = {};
+  /** Empty until the first GameSnapshot: inputs are numbered from snap.seq. */
+  private id: PlayerId = "";
+  private sink!: InputSink;
+  private sinceLastSend = 0;
+  private makeInput = SequencedFactoryFactory(0, PlayerInput);
+  private pendingSplit = false;
+  private pendingEject = false;
 
-	private foodLayer = new Container();
-	private cellLayer = new Container();
+  private foodLayer = new Container();
+  private cellLayer = new Container();
 
+  private keyDown = (e: KeyboardEvent): void => {
+    if (e.repeat) return;
+    const t = e.target as HTMLElement | null;
+    if (
+      t &&
+      (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+    )
+      return;
+    switch (e.code) {
+      case "Space":
+        e.preventDefault();
+        this.pendingSplit = true;
+        break;
+      case "KeyW":
+        this.pendingEject = true;
+        break;
+    }
+  };
 
-	private getCellGraphic(id: CellId): Graphics {
-		let g = this.cellGraphics[id];
-		if (!g) {
-			g = new Graphics().circle(0, 0, 1).fill('#ffffff');
-			this.cellLayer.addChild(g);
-			this.cellGraphics[id] = g;
-		}
-		return g;
-	}
+  private getCellGraphic(id: CellId): Graphics {
+    let g = this.cellGraphics[id];
+    if (!g) {
+      g = new Graphics().circle(0, 0, 1).fill("#ffffff");
+      this.cellLayer.addChild(g);
+      this.cellGraphics[id] = g;
+    }
+    return g;
+  }
 
-	private getFoodGraphic(id: FoodId): Graphics {
-		let g = this.foodGraphics[id];
-		if (!g) {
-			g = new Graphics().circle(0, 0, 1).fill('#ffffff');
-			this.foodLayer.addChild(g);
-			this.foodGraphics[id] = g;
-		}
-		return g;
-	}
+  private getFoodGraphic(id: FoodId): Graphics {
+    let g = this.foodGraphics[id];
+    if (!g) {
+      g = new Graphics().circle(0, 0, 1).fill("#ffffff");
+      this.foodLayer.addChild(g);
+      this.foodGraphics[id] = g;
+    }
+    return g;
+  }
 
-	static async create(host: HTMLElement): Promise<PixiApp> {
-		const engine = new PixiApp();
-		await engine.app.init({
-			background: cssColor('game'),
-			resizeTo: host,
-		});
-		host.appendChild(engine.app.canvas);
-		engine.app.stage.addChild(engine.foodLayer, engine.cellLayer);
-		engine.startTicking();
-		return engine;
-	}
+  static async create(host: HTMLElement, sink: InputSink): Promise<PixiApp> {
+    const engine = new PixiApp();
+    engine.sink = sink;
+    await engine.app.init({
+      background: cssColor("game"),
+      resizeTo: host,
+    });
+    host.appendChild(engine.app.canvas);
+    engine.app.stage.addChild(engine.foodLayer, engine.cellLayer);
+    engine.startTicking();
+    window.addEventListener("keydown", engine.keyDown);
+    return engine;
+  }
 
-	private constructor() {}
+  private constructor() {}
 
-	private startTicking(): void {
-		const { app } = this;
-		app.ticker.add((time) => {
-			if (this.destroyed) return;
-			const mousePos = app.renderer.events.pointer.global;
-			for (const [id, cell] of Object.entries(this.cells))
-			{
-				if (cell.owner === this.id)
-				{
-					let cellWorldPos = CoordToPoint(cell.pos);
-					const distToMouse = mousePos.subtract(cellWorldPos);
-					let t = Math.min(distToMouse.magnitude() / 100, 1) ** 2;
-					const sizeFactor = 1 / Math.pow(cell.radius / 25, 0.45);
-					const vel = distToMouse.normalize().multiplyScalar(t * time.deltaTime * 5 * sizeFactor);
-					cellWorldPos = cellWorldPos.add(vel);
-					// TEMP: food collision will be moved to backend so not 2 players can eat the same food simultane due to ping etc
-					for (const [foodId, food] of Object.entries(this.food)) {
-						let dist = cellWorldPos.subtract(CoordToPoint(food.pos)).magnitude();
-						if (dist < cell.radius + food.radius) {
-							food.pos = <Coord>{x: -100, y:  -100};
-							cell.radius = Math.min(MAX_RADIUS, cell.radius + 1);
-						}
-					}
-					// The following collision should eventually only work on friendly cells // they might still need some distortion
-					// Upon collision enemy cells should either be eaten by the backend or a distortion should happen if neither is large enought ot eat the other
-					for (const [otherId, otherCell] of Object.entries(this.cells)) {
-						if (id === otherId) continue;
-						let offset = cellWorldPos.subtract(CoordToPoint(otherCell.pos));
-						let dist = offset.magnitude();
-						if (dist >= cell.radius + otherCell.radius)
-							continue;
-						const dir = dist < 1e-6 ? new Point(1, 0) : offset.multiplyScalar(1 / dist);
-						cellWorldPos = CoordToPoint(otherCell.pos).add(dir.multiplyScalar(cell.radius + otherCell.radius));
-					}
-					cell.pos = PointToCoord(cellWorldPos);
-				}
+  private startTicking(): void {
+    const { app } = this;
+    app.ticker.add((time) => {
+      if (this.destroyed) return;
+      const world = this.cellLayer.toLocal(app.renderer.events.pointer.global);
+      this.target = { x: world.x, y: world.y };
 
-				const graph = this.getCellGraphic(id);
-				graph.position.set(cell.pos.x, cell.pos.y);
-				graph.scale.set(cell.radius);
-				const color = this.players[cell.owner]?.color;
-				graph.tint = color ?? '#ffffff';
-			}
-			for (const [id, f] of Object.entries(this.food))
-			{
-				const graph = this.getFoodGraphic(id);
-				graph.position.set(f.pos.x, f.pos.y);
-				graph.scale.set(f.radius);
-			}
-		});
-	}
+      // Inputs are only numbered/sent once a snapshot has seeded this.id
+      // and the sequenced input factory (makeInput starts at snap.seq).
+      if (this.id !== "") {
+        this.sinceLastSend = Math.min(
+          this.sinceLastSend + time.deltaMS,
+          SEND_INTERVAL_MS * 2,
+        );
+        if (this.sinceLastSend >= SEND_INTERVAL_MS) {
+          this.sinceLastSend -= SEND_INTERVAL_MS;
+          const input = this.makeInput({
+            mouse: this.target,
+            split: this.pendingSplit,
+            eject: this.pendingEject,
+          });
+          this.pending.push(input);
+          if (this.pending.length > MAX_PENDING_INPUTS) this.pending.shift();
+          this.sink.send(input);
+          this.pendingSplit = false;
+          this.pendingEject = false;
+        }
+      }
 
-	public update(gu: GameUpdate): void {
-		if (this.destroyed) return;
-		for (const [id, cell] of Object.entries(gu.cells)) {
-			if (cell == null) {
-				delete this.cells[id];
-				this.cellGraphics[id]?.destroy();
-				delete this.cellGraphics[id];
-			} else {
-				this.cells[id] = cell;
-			}
-		}
-		for (const [id, f] of Object.entries(gu.food)) {
-			if (f === null) {
-				delete this.food[id];
-				this.foodGraphics[id]?.destroy();
-				delete this.foodGraphics[id];
-			} else {
-				this.food[id] = f;
-			}
-		}
-		for (const [id, p] of Object.entries(gu.players)) {
-			if (p === null) delete this.players[id];
-			else this.players[id] = p;
-		}
-	}
+      this.predict();
 
-	public snapshot(snap: GameSnapshot): void {
-		if (this.destroyed) return;
+      for (const [id, cell] of Object.entries(this.cells)) {
+        const graph = this.getCellGraphic(id);
+        graph.position.set(cell.pos.x, cell.pos.y);
+        graph.scale.set(cell.radius);
+        const color = this.players[cell.owner]?.color;
+        graph.tint = color ?? "#ffffff";
+      }
+      for (const [id, f] of Object.entries(this.food)) {
+        const graph = this.getFoodGraphic(id);
+        graph.position.set(f.pos.x, f.pos.y);
+        graph.scale.set(f.radius);
+      }
+    });
+  }
 
-		for (const id of Object.keys(this.cellGraphics)) {
-		if (!(id in snap.cells)) {
-			this.cellGraphics[id].destroy();
-			delete this.cellGraphics[id];
-		}
-	}
-	for (const id of Object.keys(this.foodGraphics)) {
-		if (!(id in snap.food)) {
-			this.foodGraphics[id].destroy();
-			delete this.foodGraphics[id];
-		}
-	}
+  /**
+   * Replays unacknowledged inputs on top of the last server state for our own
+   * cells, then advances by the in-progress frame (sinceLastSend). Total
+   * simulated time is pending.length * SEND_INTERVAL_MS + sinceLastSend, so
+   * sending or acknowledging an input never moves a cell.
+   */
+  private predict(): void {
+    const arena = this.arena;
+    if (arena === undefined) return;
+    const stepSeconds = SEND_INTERVAL_MS / 1000;
+    const partialSeconds = this.sinceLastSend / 1000;
+    for (const [id, authority] of Object.entries(this.serverCells)) {
+      let pos: Coord = authority.pos;
+      for (const input of this.pending) {
+        pos = clampCoord(
+          moveCell(
+            pos,
+            authority.radius,
+            input.mouse,
+            MAX_VELOCITY,
+            stepSeconds,
+          ),
+          arena,
+          authority.radius,
+        );
+      }
+      if (partialSeconds > 0) {
+        pos = clampCoord(
+          moveCell(
+            pos,
+            authority.radius,
+            this.target,
+            MAX_VELOCITY,
+            partialSeconds,
+          ),
+          arena,
+          authority.radius,
+        );
+      }
+      this.cells[id] = { ...authority, pos };
+    }
+  }
 
-		this.id = snap.you;
-		this.cells = structuredClone(snap.cells);
-		this.players = snap.players;
-		this.food = structuredClone(snap.food);
-	}
+  public update(gu: GameUpdate): void {
+    if (this.destroyed) return;
+    for (const [id, cell] of Object.entries(gu.cells)) {
+      if (cell == null) {
+        delete this.cells[id];
+        delete this.serverCells[id];
+        this.cellGraphics[id]?.destroy();
+        delete this.cellGraphics[id];
+      } else if (cell.owner === this.id) {
+        this.serverCells[id] = cell;
+        this.cells[id] = cell;
+      } else {
+        this.cells[id] = cell;
+      }
+    }
+    for (const [id, f] of Object.entries(gu.food)) {
+      if (f === null) {
+        delete this.food[id];
+        this.foodGraphics[id]?.destroy();
+        delete this.foodGraphics[id];
+      } else {
+        this.food[id] = f;
+      }
+    }
+    for (const [id, p] of Object.entries(gu.players)) {
+      if (p === null) delete this.players[id];
+      else this.players[id] = p;
+    }
+    // gu.seq is the last of our inputs the server has simulated; drop it and
+    // everything older, then re-predict our cells from the new authority.
+    this.pending = this.pending.filter((input) => input.seq > gu.seq);
+    this.predict();
+  }
 
-	destroy(): void {
-		if (this.destroyed) return ;
-		this.destroyed = true;
-		this.app.destroy(true, { children: true });
-		this.cellGraphics = {};
-		this.foodGraphics = {};
-		this.cells = {};
-		this.food = {};
-		this.players = {};
-	}
-}
+  public snapshot(snap: GameSnapshot): void {
+    if (this.destroyed) return;
 
-function CoordToPoint(c: Coord): Point {
-	return (new Point(c.x, c.y));
-}
+    for (const id of Object.keys(this.cellGraphics)) {
+      if (!(id in snap.cells)) {
+        this.cellGraphics[id].destroy();
+        delete this.cellGraphics[id];
+      }
+    }
+    for (const id of Object.keys(this.foodGraphics)) {
+      if (!(id in snap.food)) {
+        this.foodGraphics[id].destroy();
+        delete this.foodGraphics[id];
+      }
+    }
 
-function PointToCoord(p: Point): Coord {
-	return ({x: p.x, y: p.y });
+    this.id = snap.you;
+    this.arena = snap.arena;
+    // Number our inputs from the seq the server expects next.
+    this.makeInput = SequencedFactoryFactory(snap.seq, PlayerInput);
+    this.cells = structuredClone(snap.cells);
+    this.serverCells = {};
+    for (const [id, cell] of Object.entries(snap.cells)) {
+      if (cell.owner === snap.you) this.serverCells[id] = structuredClone(cell);
+    }
+    this.pending = [];
+    this.pendingSplit = false;
+    this.pendingEject = false;
+    this.sinceLastSend = 0;
+    this.players = snap.players;
+    this.food = structuredClone(snap.food);
+  }
+
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.app.destroy(true, { children: true });
+    this.cellGraphics = {};
+    this.foodGraphics = {};
+    this.cells = {};
+    this.serverCells = {};
+    this.pending = [];
+    this.food = {};
+    this.players = {};
+    window.removeEventListener("keydown", this.keyDown);
+  }
 }
