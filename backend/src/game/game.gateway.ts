@@ -11,14 +11,12 @@ import { Inject } from "@nestjs/common";
 import type { ArgumentMetadata } from "@nestjs/common";
 import type { Server, Socket } from "socket.io";
 import {
-  type ClientMessage,
-  type ClientMessageSchema,
-  makeClientMessage,
+  ClientMessage,
   ServerMessage,
   RoomId,
 } from "@transcendence/shared";
 import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
-import { RoomRegistry } from "./gameroom.js";
+import { GameRoom, RoomRegistry } from "./gameroom.js";
 import { GAME_CONFIG, type GameConfig } from "./game.config.js";
 import { nanoid } from "nanoid";
 
@@ -28,7 +26,7 @@ import { nanoid } from "nanoid";
 export class GameGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  private readonly messagePipe: ZodValidationPipe<ClientMessageSchema>;
+  private readonly messagePipe: ZodValidationPipe<typeof ClientMessage>;
   readonly config: GameConfig;
 
   // The @swc-node runner emits `design:paramtypes`, so class-typed parameters
@@ -38,12 +36,9 @@ export class GameGateway
     @Inject(GAME_CONFIG) config: GameConfig,
     private readonly registry: RoomRegistry,
   ) {
-    this.messagePipe = new ZodValidationPipe(
-      makeClientMessage({
-        width: config.width,
-        height: config.height,
-      }),
-    );
+    // The schema is arena-independent: mouse targets are clamped server-side
+    // in GameRoom, so the pipe needs no DI values.
+    this.messagePipe = new ZodValidationPipe(ClientMessage);
     this.config = config;
   }
 
@@ -65,8 +60,20 @@ export class GameGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
   ): void {
-    // The schema is arena-bound, and arena dims come from validated env, so
-    // the pipe is built in the constructor (decorators cannot see DI values).
+    // Validates against the shared ClientMessage schema; mouse targets are
+    // clamped to the arena later, in GameRoom.processInput.
+    const getRoomIdfromSocketRooms = (): RoomId | undefined => {
+      let id: RoomId | undefined = undefined;
+      client.rooms.forEach((value: string): void => {
+        if (value === client.id || !RoomId.safeParse(value).success)
+          return undefined;
+        if (id !== undefined)
+          throw `Socket ${client.id} assigned to multiple GameRooms`;
+        id = value;
+      });
+      return id;
+    };
+
     const msg: ClientMessage = this.messagePipe.transform(payload, {
       type: "body",
     } satisfies ArgumentMetadata);
@@ -74,13 +81,17 @@ export class GameGateway
       case "join": {
         // Idempotent repeat join: the socket is already in a room, resend its
         // snapshot instead of adding a second player.
-        const existing = this.registry.findForSocket(client.id);
+        const existing = getRoomIdfromSocketRooms();
         if (existing !== undefined) {
-          const you = existing.clientIds[client.id];
+          const room: GameRoom | undefined = this.registry.get(existing);
+          if (room === undefined)
+            throw "Socket RoomId not in GameRoom Registry";
+          const you = room.clientIds[client.id];
           if (you !== undefined) {
-            client.emit("message", JSON.stringify(existing.snapshotFor(you)));
+            client.emit("message", JSON.stringify(room.snapshotFor(you)));
+            return;
           }
-          return;
+          throw `GameRoom ${room.id} can't find PlayerId for socket ${client.id}`;
         }
         const room = msg.roomId
           ? this.registry.get(msg.roomId)
@@ -106,18 +117,20 @@ export class GameGateway
           );
           return;
         }
-        client.emit("message", JSON.stringify(room.snapshotFor(id)));
         return;
       }
       case "input":
-        console.warn("Player input not yet handled");
-        client.emit(
-          "message",
-          JSON.stringify({
-            type: "announcement",
-            text: "Input received",
-          } satisfies ServerMessage),
-        );
+        const roomId = getRoomIdfromSocketRooms();
+        if (roomId === undefined) {
+          console.error(
+            `Received input from socket ${client.id} not assigned to any game room`,
+          );
+          return;
+        }
+        const room = this.registry.get(roomId);
+        if (room === undefined)
+          throw `Socket ${client.id} assigned to room unknown to room registry`;
+        room.processInput(client, msg);
         return;
       default:
         throw "Unhandled ClientMessage type received";

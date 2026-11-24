@@ -6,6 +6,7 @@ import {
   viewChild,
 } from "@angular/core";
 import {
+  ClientMessage,
   GameSnapshot,
   JoinRequest,
   ServerMessage,
@@ -30,7 +31,11 @@ export class Game implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     try {
-      const app = await PixiApp.create(this.host().nativeElement);
+      const app = await PixiApp.create(this.host().nativeElement, {
+        send: (msg: ClientMessage): void => {
+          socket?.send(msg);
+        },
+      });
       if (this.destroyed) {
         app.destroy();
         return;
@@ -58,7 +63,7 @@ export class Game implements AfterViewInit, OnDestroy {
         type: "join",
         roomId: this.snap?.roomId,
         meta: {
-          name: "", // Placeholder
+          name: "Player", // Placeholder
           color: "#BEEFEE", // Placeholder
         },
       };

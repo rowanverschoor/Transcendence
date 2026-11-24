@@ -8,9 +8,12 @@ import { z } from "zod";
 //   * every id is a string — JSON object keys are strings.
 // - Deltas encode removal as a null value (tombstone) under the entity's id.
 //   A snapshot carries the same fields but never tombstones.
-// - The make* factories bound coordinates to the arena. Only the server uses
-//   them: it distrusts clients, not itself. Clients parse with the unbounded
-//   schemas (the arena arrives in the GameSnapshot).
+// - The make* factories bound coordinates to the arena (makeCoord). Only the
+//   server uses them: it distrusts clients, not itself. Clients parse with the
+//   unbounded schemas (the arena arrives in the GameSnapshot).
+// - MousePos is deliberately unbounded: a mouse target may point outside the
+//   arena, and the server clamps it (shared/game.ts clampCoord) rather than
+//   rejecting the input.
 // ---------------------------------------------------------------------------
 
 const Sequenced = z.compile(z.object({ seq: z.number().int().min(0) }));
@@ -57,6 +60,19 @@ export const Coord = z.compile(
   }),
 );
 export type Coord = z.infer<typeof Coord>;
+
+/**
+ * Mouse target in world coordinates. Any finite number is accepted;
+ * z.number() already rejects NaN/Infinity — the server clamps the target into
+ * the arena (see shared/game.ts clampCoord).
+ */
+export const MousePos = z.compile(
+  z.object({
+    x: z.number(),
+    y: z.number(),
+  }),
+);
+export type MousePos = z.infer<typeof MousePos>;
 
 export const makeCoord = (cfg: ArenaConfig) =>
   z.compile(
@@ -109,9 +125,14 @@ export const JoinRequest = z.compile(
   }),
 );
 
+/**
+ * One input per player, not per cell: the backend computes every cell position
+ * itself each tick (shared/game.ts moveCell). `split`/`eject` are contract
+ * placeholders for the mechanics they name; the backend ignores them so far.
+ */
 export const PlayerInput = z.compile(
   SequencedSchema("input", {
-    mousepos: Coord,
+    mouse: MousePos,
     split: z.boolean().optional(),
     eject: z.boolean().optional(),
   }),
@@ -120,20 +141,6 @@ export const PlayerInput = z.compile(
 export const ClientMessage = z.compile(
   z.discriminatedUnion("type", [PlayerInput, JoinRequest]),
 );
-
-// Bounded variants: the server validates client input against the arena.
-export const makePlayerInput = (cfg: ArenaConfig) =>
-  z.compile(
-    SequencedSchema("input", {
-      mousepos: makeCoord(cfg),
-      split: z.boolean().optional(),
-      eject: z.boolean().optional(),
-    }),
-  );
-
-export const makeClientMessage = (cfg: ArenaConfig) =>
-  z.compile(z.discriminatedUnion("type", [makePlayerInput(cfg), JoinRequest]));
-export type ClientMessageSchema = ReturnType<typeof makeClientMessage>;
 
 // --- Game state (shared between snapshot and deltas) --------------------------
 
@@ -168,6 +175,8 @@ export const GameSnapshot = z.compile(
     roomId: RoomId,
     /** The receiving client's own player: which cells are yours. */
     you: PlayerId,
+    /** First seq number the receiving client should number its inputs from. */
+    seq: z.number().int().min(0),
     arena: Arena,
     tick: z.number().int().min(0),
     players: z.record(PlayerId, PlayerMeta),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Socket, Server } from "socket.io";
-import type { PlayerMeta } from "@transcendence/shared";
+import type { Coord, PlayerMeta } from "@transcendence/shared";
+import { clampCoord, moveCell } from "@transcendence/shared/game";
 import { GameRoom } from "./gameroom.js";
 import type { GameConfig } from "./game.config.js";
 
@@ -9,7 +10,9 @@ const config: GameConfig = {
   height: 800,
   capacity: 3,
   foodRadius: 10,
+  playerRadius: 10,
   nFoodChunks: 2,
+  maxVelocity: 10,
 };
 
 const makeRoom = (capacity = 3): GameRoom =>
@@ -21,7 +24,7 @@ const makeRoom = (capacity = 3): GameRoom =>
   );
 
 const socketOf = (id: string) =>
-  ({ id, emit: () => undefined }) as unknown as Socket;
+  ({ id, emit: () => undefined, join: () => undefined, leave: () => undefined }) as unknown as Socket;
 
 const meta = (over: Partial<PlayerMeta> = {}): PlayerMeta => ({
   name: over.name,
@@ -70,6 +73,18 @@ describe("GameRoom.removeClient", () => {
     expect(() => room.removeClient("stranger")).not.toThrow();
     expect(Object.keys(room.players)).toHaveLength(1);
   });
+
+  it("purges pending updates so doTick survives a disconnect before the next tick", () => {
+    const room = makeRoom();
+    room.addPlayer(socketOf("s1"), meta({ name: "Blob-a" }));
+    room.addPlayer(socketOf("s2"), meta({ name: "Blob-b" }));
+    room.removeClient("s2"); // spawn only: cell sits in this.updates.cells
+    // Without the buffer purge, doTick's commit loop reads
+    // this.cells[cid] for the removed player's cell and throws.
+    expect(() => room.doTick()).not.toThrow();
+    room.removeClient("s1");
+    expect(() => room.doTick()).not.toThrow();
+  });
 });
 
 describe("GameRoom.snapshotFor", () => {
@@ -90,6 +105,92 @@ describe("GameRoom.snapshotFor", () => {
       color: "#000000",
     });
     expect(Object.keys(snap.food)).toHaveLength(2);
-    expect(snap.cells).toEqual({});
+    // addPlayer now spawns the player's own start cell.
+    expect(Object.keys(snap.cells)).toHaveLength(1);
+    expect(Object.values(snap.cells)[0]?.owner).toBe(id);
+  });
+});
+
+const TICK_S = 0.05; // tickPeriod_ms / 1000 for the 20 Hz tick rate
+
+/** Where the server must put a cell after one tick chasing `target`. */
+const expectedPos = (from: Coord, target: Coord, radius: number): Coord =>
+  clampCoord(
+    moveCell(from, radius, target, config.maxVelocity, TICK_S),
+    config,
+    radius,
+  );
+
+describe("GameRoom.processInput", () => {
+  it("accepts an out-of-arena mouse target clamped into the arena", () => {
+    const room = makeRoom();
+    const id = room.addPlayer(socketOf("socket-1"), meta({ name: "Blob-a" })) as string;
+    const anchor = room.snapshotFor(id).cells["0"].pos;
+    const mouse = { x: 9999, y: -50 };
+
+    room.processInput(socketOf("socket-1"), { type: "input", seq: 1, mouse });
+
+    expect(room.PlayerSeqs[id]).toBe(1);
+    expect(room.mouseTargets[id]).toEqual({ x: config.width, y: 0 });
+
+    room.doTick();
+    expect(room.cells["0"].pos).toEqual(
+      expectedPos(anchor, { x: config.width, y: 0 }, config.playerRadius),
+    );
+  });
+
+  it("drops duplicate and reordered input so the newest target wins", () => {
+    const room = makeRoom();
+    const id = room.addPlayer(socketOf("socket-1"), meta({ name: "Blob-a" })) as string;
+    const socket = socketOf("socket-1");
+
+    room.processInput(socket, { type: "input", seq: 5, mouse: { x: 100, y: 100 } });
+    // Same seq, different target: duplicate, dropped.
+    room.processInput(socket, { type: "input", seq: 5, mouse: { x: 200, y: 200 } });
+    // Older seq arriving late: dropped.
+    room.processInput(socket, { type: "input", seq: 3, mouse: { x: 300, y: 300 } });
+
+    expect(room.PlayerSeqs[id]).toBe(5);
+    expect(room.mouseTargets[id]).toEqual({ x: 100, y: 100 });
+
+    const anchor = room.snapshotFor(id).cells["0"].pos;
+    room.doTick();
+    expect(room.cells["0"].pos).toEqual(
+      expectedPos(anchor, { x: 100, y: 100 }, config.playerRadius),
+    );
+  });
+
+  it("accepts the first input numbered from the snapshot's seq", () => {
+    const room = makeRoom();
+    const id = room.addPlayer(socketOf("socket-1"), meta({ name: "Blob-a" })) as string;
+    const first = room.snapshotFor(id).seq;
+
+    room.processInput(socketOf("socket-1"), { type: "input", seq: first, mouse: { x: 0, y: 0 } });
+
+    expect(room.PlayerSeqs[id]).toBe(first);
+    expect(room.mouseTargets[id]).toEqual({ x: 0, y: 0 });
+  });
+
+  it("leaves a cell that never got input exactly where it spawned", () => {
+    const room = makeRoom();
+    const id = room.addPlayer(socketOf("socket-1"), meta({ name: "Blob-a" })) as string;
+    const anchor = room.snapshotFor(id).cells["0"].pos;
+    room.doTick(); // flush the spawn delta
+
+    room.doTick();
+
+    expect(room.cells["0"].pos).toEqual(anchor);
+    expect(room.updates.cells).toEqual({});
+  });
+
+  it("clears the mouse target when the player leaves", () => {
+    const room = makeRoom();
+    const id = room.addPlayer(socketOf("socket-1"), meta({ name: "Blob-a" })) as string;
+    room.processInput(socketOf("socket-1"), { type: "input", seq: 1, mouse: { x: 100, y: 100 } });
+    expect(room.mouseTargets[id]).toBeDefined();
+
+    room.removeClient("socket-1");
+
+    expect(room.mouseTargets).toEqual({});
   });
 });
