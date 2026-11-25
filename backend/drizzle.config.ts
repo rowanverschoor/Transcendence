@@ -2,10 +2,9 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "drizzle-kit";
 
-// npm workspace scripts run with cwd = backend/, so the repo-root .env is one
-// level up. Resolve relative to this config file so it also works if invoked
-// from elsewhere with --config.
-const envPath = resolve(import.meta.dirname, "../.env");
+// npm workspace scripts run from backend/, so ../.env is the repo-root .env.
+// Use process.cwd() because drizzle-kit doesn't provide import.meta.dirname.
+const envPath = resolve(process.cwd(), "../.env");
 if (existsSync(envPath)) {
 	process.loadEnvFile(envPath);
 }
