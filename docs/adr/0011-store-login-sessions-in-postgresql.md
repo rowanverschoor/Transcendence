@@ -13,14 +13,14 @@ Acceptance criteria: full team has read it and no unresolved pushback remains.
 - Auth milestone 4 needs a logged-in user to survive a backend restart.
   `docs/auth.md` Q4 leaves the storage choice open and requires this ADR
   before milestone 4.
-- Users and credentials already live in PostgreSQL (this branch; the
+- Users and credentials already live in PostgreSQL (PR #25; the
   database/ORM choice is tracked separately as ADR 0009). Sessions are
   small, keyed by session id, read on protected requests, and expire after
   a fixed time.
 - Adding another stateful service costs the team more than it saves at
   our scale: five C/C++ developers, one database already in the compose
   stack, and no measured session-store bottleneck.
-- This branch also lands a provisional `sessions` table as schema
+- PR #25 also lands a provisional `sessions` table as schema
   groundwork. The final store adapter may expect a different table shape;
   that is an implementation and migration detail, not a change to this
   decision. Migration 0000 is frozen after merge; later changes go in
