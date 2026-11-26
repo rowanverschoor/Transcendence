@@ -21,10 +21,16 @@
   <router-outlet />
 </main>
 <div class="dock">
-  <button type="button" class="btn btn--ghost btn--round" aria-label="Friends">
+  <button type="button" class="btn btn--ghost btn--round" aria-label="Chat">
     <img src="/chat.png" alt="">
   </button>
-  <button type="button" class="btn btn--ghost btn--round" aria-label="Friends">
+  <button type="button" class="btn btn--ghost btn--round"
+          aria-label="Friends"
+          [attr.aria-expanded]="friendsOpen()"
+          (click)="friendsOpen.set(!friendsOpen())">
     <img src="/friendlist.png" alt="">
   </button>
+  @if (friendsOpen()) {
+    <app-friends-panel />
+}
 </div>
